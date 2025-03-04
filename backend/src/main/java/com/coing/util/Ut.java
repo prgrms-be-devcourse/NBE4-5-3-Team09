@@ -1,17 +1,29 @@
 package com.coing.util;
 
+import java.util.Arrays;
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 
 import javax.crypto.SecretKey;
 
 import org.springframework.stereotype.Component;
 
+import com.coing.infra.upbit.dto.UpbitWebSocketFormatDto;
+import com.coing.infra.upbit.dto.UpbitWebSocketTicketDto;
+import com.coing.infra.upbit.dto.UpbitWebSocketTypeDto;
+import com.coing.infra.upbit.enums.EnumUpbitRequestType;
+import com.coing.infra.upbit.enums.EnumUpbitWebSocketFormat;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 
 @Component
 public class Ut {
+	private static final ObjectMapper objectMapper = new ObjectMapper();
+
 	public static class Jwt {
 		public static String createToken(String keyString, int expireSeconds, Map<String, Object> claims) {
 
@@ -61,6 +73,38 @@ public class Ut {
 				.parse(jwtStr)
 				.getPayload();
 
+		}
+	}
+
+	public static class Json {
+
+		public static String toString(Object obj) {
+			try {
+				return objectMapper.writeValueAsString(obj);
+			} catch (JsonProcessingException e) {
+				throw new RuntimeException(e);
+			}
+		}
+	}
+
+	public static class Upbit {
+
+		public static String makeRequest(EnumUpbitRequestType type) throws JsonProcessingException {
+			UpbitWebSocketTicketDto ticketDto = UpbitWebSocketTicketDto.builder()
+				.ticket(type.getValue())
+				.build();
+			UpbitWebSocketTypeDto typeDto = UpbitWebSocketTypeDto.builder()
+				.type(type.getValue())
+				.codes(type.getDefaultCodes())
+				.isOnlyRealtime(false)
+				.isOnlySnapshot(false)
+				.build();
+			UpbitWebSocketFormatDto formatDto = UpbitWebSocketFormatDto.builder()
+				.format(EnumUpbitWebSocketFormat.SIMPLE)
+				.build();
+
+			List<Object> dataList = Arrays.asList(ticketDto, typeDto, formatDto);
+			return objectMapper.writeValueAsString(dataList);
 		}
 	}
 }

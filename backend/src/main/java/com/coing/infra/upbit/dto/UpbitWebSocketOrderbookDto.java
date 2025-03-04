@@ -1,8 +1,10 @@
 package com.coing.infra.upbit.dto;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
-import com.coing.domain.coin.entity.Orderbook;
+import com.coing.domain.coin.orderbook.entity.Orderbook;
+import com.coing.domain.coin.orderbook.entity.OrderbookUnit;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import lombok.AllArgsConstructor;
@@ -18,7 +20,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class OrderbookDto {
+public class UpbitWebSocketOrderbookDto {
 	@JsonProperty("ty")
 	private String type;
 
@@ -52,6 +54,13 @@ public class OrderbookDto {
 			.timestamp(this.timestamp)
 			.level(this.level);
 
+		if (this.orderbookUnits != null) {
+			List<OrderbookUnit> units = this.orderbookUnits.stream()
+				.map(OrderbookUnitDto::toEntity)
+				.collect(Collectors.toList());
+			orderbookBuilder.orderbookUnits(units);
+		}
+
 		return orderbookBuilder.build();
 	}
 
@@ -71,8 +80,8 @@ public class OrderbookDto {
 		@JsonProperty("bs")
 		private Double bidSize;
 
-		public Orderbook.OrderbookUnit toEntity() {
-			return new Orderbook.OrderbookUnit(askPrice, bidPrice, askSize, bidSize);
+		public OrderbookUnit toEntity() {
+			return new OrderbookUnit(askPrice, bidPrice, askSize, bidSize);
 		}
 	}
 
