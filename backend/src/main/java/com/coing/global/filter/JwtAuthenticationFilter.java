@@ -4,6 +4,7 @@ import static com.coing.util.Ut.Jwt.*;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -11,6 +12,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+
+import com.coing.domain.user.CustomUserPrincipal;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -46,20 +49,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 		}
 
 		Map<String, Object> claims = getPayload(secretKey, token);
-		Long id = ((Number)claims.get("id")).longValue();
+		UUID id = UUID.fromString(claims.get("id").toString());
 		String email = (String)claims.get("email");
-		// String authority = (String) claims.get("authority");
+		String name = (String)claims.get("name");
 
-		// // 권한 설정
-		// Collection<GrantedAuthority> authorities = new ArrayList<>();
-		// if (authority != null) {
-		// 	authorities.add(new SimpleGrantedAuthority(authority));
-		// 	log.debug("User authority set: {}", authority);
-		// }
-
-		Authentication authentication = new UsernamePasswordAuthenticationToken(
-			email, null);
-
+		// 커스텀 Principal 객체 생성 (이제 이름도 포함)
+		CustomUserPrincipal principal = new CustomUserPrincipal(id, email, name);
+		Authentication authentication = new UsernamePasswordAuthenticationToken(principal, null);
 		SecurityContextHolder.getContext().setAuthentication(authentication);
 
 		filterChain.doFilter(request, response);
