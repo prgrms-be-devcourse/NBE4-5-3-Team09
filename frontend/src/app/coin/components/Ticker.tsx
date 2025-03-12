@@ -1,5 +1,6 @@
 'use client';
 
+import { TickerDto } from '@/types';
 import { useEffect, useState, useRef } from 'react';
 
 interface TickerProps {
@@ -9,14 +10,6 @@ interface TickerProps {
 
 type TickerResponse = {
   ticker: TickerDto | null;
-};
-
-export type TickerDto = {
-  tradePrice: number;
-  prevClosingPrice: number;
-  accTradeVolume24h: number;
-  signedChangeRate: number;
-  change: 'RISE' | 'FALL' | 'EVEN';
 };
 
 export default function Ticker({ market, ticker }: TickerProps) {
@@ -57,55 +50,78 @@ export default function Ticker({ market, ticker }: TickerProps) {
   return (
     <div>
       <div className="mb-4">
-        <h1 className="text-2xl font-bold flex items-center">
-          <span className="mr-2">{market.split('-')[1]}</span>
-          {currentTicker && (
-            <span
-              className={`text-xl ${
-                currentTicker.change === 'RISE'
-                  ? 'text-green-500'
-                  : currentTicker.change === 'FALL'
-                    ? 'text-red-500'
-                    : 'text-gray-500'
-              }`}
-            >
-              ₩{currentTicker.tradePrice.toLocaleString()}
-              <span className="ml-2 text-sm">
-                {currentTicker.signedChangeRate > 0 ? '+' : ''}
-                {(currentTicker.signedChangeRate * 100).toFixed(2)}%
-              </span>
-            </span>
-          )}
+        <h1 className="text-2xl flex items-center">
+          <div className="flex-col">
+            <div>
+              <span className="mr-2 font-extrabold">{currentTicker?.koreanName}</span>
+              <span className="mr-2 text-xl font-medium">{currentTicker?.englishName}</span>
+              {currentTicker && (
+                <span
+                  className={`text-xl ${
+                    currentTicker.change === 'RISE'
+                      ? 'text-red-500'
+                      : currentTicker.change === 'FALL'
+                        ? 'text-blue-500'
+                        : 'text-black-500'
+                  }`}
+                >
+                  {currentTicker.tradePrice.toLocaleString()}
+                  <span className="ml-0.5 text-sm">{market.split('-')[0]}</span>
+                </span>
+              )}
+            </div>
+            <div className="mr-2 text-sm text-gray-400 font-medium">{market}</div>
+          </div>
         </h1>
       </div>
 
       <div className="bg-muted py-4 mb-4 rounded-lg">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-4 gap-4">
-            <div className="bg-background p-4 rounded-lg shadow-sm">
-              <div className="text-sm text-gray-500">24시간 거래량</div>
-              <div className="text-xl font-bold text-blue-600">
-                {currentTicker ? Math.floor(currentTicker.accTradeVolume24h).toLocaleString() : '-'}
-                <span className="text-sm">{market.split('-')[1]}</span>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+            {[
+              {
+                label: '24시간 거래량',
+                value: currentTicker
+                  ? Math.floor(currentTicker.accTradeVolume24h).toLocaleString()
+                  : '-',
+                unit: market.split('-')[1],
+              },
+              {
+                label: '거래대금',
+                value: currentTicker
+                  ? Math.floor(currentTicker.accTradePrice24h).toLocaleString()
+                  : '-',
+                unit: market.split('-')[0],
+              },
+              {
+                label: '전일 종가',
+                value: currentTicker ? currentTicker.prevClosingPrice.toLocaleString() : '-',
+                unit: market.split('-')[0],
+              },
+              {
+                label: '전일대비',
+                value: currentTicker
+                  ? (currentTicker.signedChangeRate * 100).toFixed(2) + '%'
+                  : '-',
+                unit: '',
+                color:
+                  currentTicker?.change === 'RISE'
+                    ? 'text-red-500'
+                    : currentTicker?.change === 'FALL'
+                      ? 'text-blue-500'
+                      : 'text-black-500',
+              },
+            ].map(({ label, value, unit, color }, index) => (
+              <div key={index} className="bg-background p-4 rounded-lg shadow-sm">
+                <div className="text-sm text-gray-500">{label}</div>
+                <div
+                  className={`text-xl font-bold ${color || 'text-black-600'} flex flex-wrap items-center gap-x-1 text-left min-w-0`}
+                >
+                  <span className="break-all w-auto min-w-0">{value}</span>
+                  {unit && <span className="text-sm flex-shrink-0">{unit}</span>}
+                </div>
               </div>
-            </div>
-            <div className="bg-background p-4 rounded-lg shadow-sm">
-              <div className="text-sm text-gray-500">전일 종가</div>
-              <div className="text-xl font-bold text-blue-600">
-                {currentTicker ? currentTicker.prevClosingPrice.toLocaleString() : '-'}
-                <span className="text-sm">{market.split('-')[0]}</span>
-              </div>
-            </div>
-            <div className="bg-background p-4 rounded-lg shadow-sm">
-              <div className="text-sm text-gray-500">도미넌스</div>
-              <div className="text-xl font-bold text-blue-600">52.1%</div>
-            </div>
-            <div className="bg-background p-4 rounded-lg shadow-sm">
-              <div className="text-sm text-gray-500">전일대비</div>
-              <div className="text-xl font-bold text-blue-600">
-                {currentTicker ? (currentTicker.signedChangeRate * 100).toFixed(2) + '%' : '-'}
-              </div>
-            </div>
+            ))}
           </div>
         </div>
       </div>
