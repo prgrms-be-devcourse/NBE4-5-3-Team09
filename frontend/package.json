@@ -13,6 +13,7 @@
     "lint:fix": "eslint . --ext .ts,.tsx,.js,.jsx --fix && prettier --write \"**/*.{js,jsx,ts,tsx,md}\""
   },
   "dependencies": {
+    "@radix-ui/react-alert-dialog": "^1.1.6",
     "@radix-ui/react-label": "^2.1.2",
     "@radix-ui/react-select": "^2.1.6",
     "@radix-ui/react-slot": "^1.1.2",
@@ -33,6 +34,7 @@
     "openapi-fetch": "^0.13.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "sonner": "^2.0.1",
     "tailwind-merge": "^3.0.2",
     "tailwindcss": "^4.0.11",
     "tailwindcss-animate": "^1.0.7",

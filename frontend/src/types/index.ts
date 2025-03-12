@@ -156,3 +156,9 @@ export type PaginationDto = {
   totalElements: number;
   totalPages: number;
 };
+
+export type UserInfoDto = {
+  id: string;
+  name: string;
+  email: string;
+};
