@@ -4,9 +4,9 @@ import { useEffect, useState } from 'react';
 import WebSocketProvider from '@/context/WebSocketContext';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import ClientPage from './ClientPage';
-import { MarketDto, MarketsDto, PaginationDto } from '@/types';
-import { fetchApi } from '@/lib/api';
+import { MarketDto, PaginationDto } from '@/types';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useAuth } from '@/context/AuthContext';
 
 import PaginationComponent from '@/components/Pagination';
 
@@ -23,17 +23,24 @@ export default function Page() {
   const [size, setSize] = useState(9);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { accessToken } = useAuth();
 
   async function fetchMarkets() {
     try {
       setLoading(true);
       setError(null);
-      const data = await fetchApi<MarketsDto>(
-        `/api/markets?type=${quote}&page=${page - 1}&size=${size}`,
+      const res = await fetch(
+        process.env.NEXT_PUBLIC_API_URL + `/api/market?type=${quote}&page=${page - 1}&size=${size}`,
         {
           method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${accessToken}`,
+          },
+          credentials: 'include',
         },
       );
+      const data = await res.json();
       setMarkets(data.content);
       setPagination(data);
     } catch (err) {
@@ -63,9 +70,15 @@ export default function Page() {
       <div className="max-w-7xl mx-auto p-6">
         <Tabs value={quote} onValueChange={handleQuoteChange}>
           <TabsList className="grid w-full grid-cols-3 bg-muted">
-            <TabsTrigger value="KRW">KRW</TabsTrigger>
-            <TabsTrigger value="BTC">BTC</TabsTrigger>
-            <TabsTrigger value="USDT">USDT</TabsTrigger>
+            <TabsTrigger className="cursor-pointer" value="KRW">
+              KRW
+            </TabsTrigger>
+            <TabsTrigger className="cursor-pointer" value="BTC">
+              BTC
+            </TabsTrigger>
+            <TabsTrigger className="cursor-pointer" value="USDT">
+              USDT
+            </TabsTrigger>
           </TabsList>
         </Tabs>
         <ClientPage markets={markets.slice(0, size)} />

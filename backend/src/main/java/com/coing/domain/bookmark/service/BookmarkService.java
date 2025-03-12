@@ -1,12 +1,9 @@
 package com.coing.domain.bookmark.service;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -23,6 +20,7 @@ import com.coing.domain.user.entity.User;
 import com.coing.domain.user.repository.UserRepository;
 import com.coing.global.exception.BusinessException;
 import com.coing.util.MessageUtil;
+import com.coing.util.PageUtil;
 
 import lombok.RequiredArgsConstructor;
 
@@ -36,7 +34,7 @@ public class BookmarkService {
 	private final MessageUtil messageUtil;
 
 	@Transactional
-	public BookmarkResponse addBookmark(BookmarkRequest request, CustomUserPrincipal principal) {
+	public void addBookmark(BookmarkRequest request, CustomUserPrincipal principal) {
 		UUID userId = principal.id();
 		String coinCode = request.coinCode();
 
@@ -57,41 +55,30 @@ public class BookmarkService {
 		Bookmark bookmark = Bookmark.builder()
 			.user(user)
 			.market(market)
-			.createAt(LocalDateTime.now())
 			.build();
 
-		Bookmark savedBookmark = bookmarkRepository.save(bookmark);
-		return new BookmarkResponse(
-			savedBookmark.getId(),
-			savedBookmark.getMarket().getCode(),
-			savedBookmark.getMarket().getKoreanName(),
-			savedBookmark.getMarket().getEnglishName(),
-			savedBookmark.getCreateAt()
-		);
+		bookmarkRepository.save(bookmark);
+		//return BookmarkResponse.of(bookmark);
 	}
 
 	@Transactional(readOnly = true)
 	public Page<BookmarkResponse> getBookmarksByQuote(UUID userId, String quote, Pageable pageable) {
-		Page<Bookmark> bookmarks = bookmarkRepository.findByUserIdAndQuote(userId, quote, pageable);
+		List<Bookmark> bookmarks = bookmarkRepository.findByUserIdAndQuote(userId, quote);
 
 		List<BookmarkResponse> responses = bookmarks.stream()
-			.map(b -> new BookmarkResponse(
-				b.getId(),
-				b.getMarket().getCode(),
-				b.getMarket().getKoreanName(),
-				b.getMarket().getEnglishName(),
-				b.getCreateAt()
-			))
-			.collect(Collectors.toList());
+			.map(BookmarkResponse::of)
+			.toList();
 
-		return new PageImpl<>(responses, pageable, bookmarks.getTotalElements());
+		return PageUtil.paginate(responses, pageable);
 	}
 
 	@Transactional
-	public void deleteBookmark(UUID userId, Long bookmarkId) {
-		Bookmark bookmark = bookmarkRepository.findById(bookmarkId)
-			.orElseThrow(() -> new BusinessException(messageUtil.resolveMessage("bookmark.not.found"),
-				HttpStatus.NOT_FOUND));
+	public void deleteBookmark(UUID userId, String marketCode) {
+		Bookmark bookmark = bookmarkRepository.findByMarketCode(marketCode);
+		if (bookmark == null) {
+			throw new BusinessException(messageUtil.resolveMessage("bookmark.not.found"),
+				HttpStatus.NOT_FOUND);
+		}
 
 		// 인증된 사용자가 북마크의 소유자인지 확인
 		if (!bookmark.getUser().getId().equals(userId)) {
@@ -99,6 +86,6 @@ public class BookmarkService {
 				HttpStatus.FORBIDDEN);
 		}
 
-		bookmarkRepository.deleteById(bookmarkId);
+		bookmarkRepository.delete(bookmark);
 	}
 }
