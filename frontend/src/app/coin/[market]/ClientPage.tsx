@@ -3,13 +3,13 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { useWebSocket } from '@/context/WebSocketContext';
-import type { CandleItem, CandleChartDto } from '@/types';
 import axios from 'axios';
-import { generateMockNews } from '@/lib/utils';
 import OrderbookList from '../components/orderbook/OrderbookList';
 import CandleChart from '../components/CandleChart';
-import TradeList from '../components/TradeList';
 import NewsList from '../components/NewsList';
+import { generateMockNews } from '@/lib/utils';
+import type { CandleChartDto, CandleItem } from '@/types';
+import TradeList from '../components/TradeList';
 
 export default function ClientPage() {
   const { market } = useParams() as { market: string };
