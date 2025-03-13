@@ -14,7 +14,7 @@ export function ModeToggle() {
 
   return (
     <Button variant="outline" size="icon" onClick={toggleTheme}>
-      <Sun className={`${theme == 'dark' ? 'hidden' : ''} h-4 w-4`} />
+      <Sun className={`${theme == 'light' ? '' : 'hidden'} h-4 w-4`} />
       <Moon className={`${theme == 'light' ? 'hidden' : ''} h-4 w-4`} />
     </Button>
   );
