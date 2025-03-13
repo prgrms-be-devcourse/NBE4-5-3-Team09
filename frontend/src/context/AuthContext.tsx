@@ -85,7 +85,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // 컴포넌트 마운트 시 토큰 유무 체크
   useEffect(() => {
     async function validateToken() {
-      const token = sessionStorage.getItem('accessToken');
+      sessionStorage.getItem('accessToken');
       setIsAuthLoading(false);
     }
     validateToken();

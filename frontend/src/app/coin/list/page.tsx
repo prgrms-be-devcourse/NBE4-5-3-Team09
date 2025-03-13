@@ -5,7 +5,6 @@ import WebSocketProvider from '@/context/WebSocketContext';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import ClientPage from './ClientPage';
 import { MarketDto, PaginationDto } from '@/types';
-import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/context/AuthContext';
 
 import PaginationComponent from '@/components/Pagination';
