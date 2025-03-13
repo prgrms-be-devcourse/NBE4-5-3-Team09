@@ -33,14 +33,20 @@ export default function Page() {
     try {
       setLoading(true);
       setError(null);
+
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+
+      if (accessToken) {
+        headers.Authorization = `Bearer ${accessToken}`;
+      }
+
       const res = await fetch(
         process.env.NEXT_PUBLIC_API_URL + `/api/market?type=${quote}&page=${page - 1}&size=${size}`,
         {
           method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${accessToken}`,
-          },
+          headers,
           credentials: 'include',
         },
       );
@@ -73,7 +79,7 @@ export default function Page() {
     setPage(1);
   };
 
-  if (loading) return <Skeleton className="h-96 w-full rounded-md" />;
+  if (loading) return <div className="p-6 flex justify-center items-center">로딩 중...</div>;
   if (error) return <p className="text-red-500">{error}</p>;
   if (!markets) return <p>No data found</p>;
 
