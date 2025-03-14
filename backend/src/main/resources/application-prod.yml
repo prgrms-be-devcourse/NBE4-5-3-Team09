@@ -1,0 +1,14 @@
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: validate
+
+  flyway:
+    enabled: false
+    validateOnMigrate: true
+    cleanDisabled: true
+
+logging:
+  level:
+    root: WARN
+    org.hibernate: WARN

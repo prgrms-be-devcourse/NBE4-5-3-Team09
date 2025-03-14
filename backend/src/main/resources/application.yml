@@ -1,0 +1,74 @@
+server:
+  port: ${SERVER_PORT:8080}
+
+spring:
+  application:
+    name: coing
+  profiles:
+    active: ${SPRING_ACTIVE_PROFILES:prod}
+  config:
+    import: optional:file:./.env[.properties]
+  output:
+    ansi:
+      enabled: always
+  jackson:
+    serialization:
+      fail-on-empty-beans: false
+
+  datasource:
+    url: jdbc:mysql://${DB_HOST}:${DB_PORT}/${DB_NAME}?serverTimezone=UTC&characterEncoding=UTF-8&allowPublicKeyRetrieval=true&connectTimeout=20000&useSSL=false
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      auto-commit: false
+
+  jpa:
+    database-platform: org.hibernate.dialect.MySQLDialect
+    open-in-view: false
+
+  mail:
+    verification:
+      sender: ${MAIL_USERNAME}
+    host: ${MAIL_HOST}
+    port: ${MAIL_PORT}
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
+    auth-code-expiration-millis: 1800000
+
+  flyway: # managing database migration
+    enabled: false
+    baseline-on-migrate: true
+    baseline-version: 0
+    fail-on-missing-locations: true
+    locations: classpath:db/migration
+
+springdoc:
+  default-produces-media-type: application/json;charset=UTF-8
+
+custom:
+  jwt:
+    secret-key: ${JWT_SECRET_KEY}
+    expire-seconds: ${JWT_EXPIRE_SECONDS}
+    refresh-expire-seconds: ${JWT_REFRESH_EXPIRE_SECONDS}
+    mail-verification-url: ${EMAIL_VERIFICATION_URL:http://localhost:3000/api/auth/verify-email-?token=}
+    password-reset-url: ${PASSWORD_RESET_URL:http://localhost:3000/user/password-reset?token=}
+
+
+upbit:
+  websocket:
+    uri: ${UPBIT_WS_URI:wss://api.upbit.com/websocket/v1}
+  market:
+    uri: ${UPBIT_MARKET_URI:https://api.upbit.com/v1/market/all}
+  trade:
+    uri: ${UPBIT_TRADE_URI:https://api.upbit.com/v1/trades/ticks}
