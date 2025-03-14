@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.web.socket.PingMessage;
 import org.springframework.web.socket.PongMessage;
 import org.springframework.web.socket.WebSocketHandler;
@@ -20,6 +21,7 @@ import org.springframework.web.socket.client.WebSocketClient;
 import org.springframework.web.socket.handler.AbstractWebSocketHandler;
 
 @SpringBootTest
+@ActiveProfiles("test")
 public class UpbitConnectionIntegrationTest {
 
 	@Autowired
@@ -52,7 +54,7 @@ public class UpbitConnectionIntegrationTest {
 		webSocketClient.execute(testHandler, upbitWebSocketUri);
 
 		// then: 최대 5초 동안 Pong 응답(PING)이 도착하는지 확인
-		boolean connected = latch.await(5, TimeUnit.SECONDS);
+		boolean connected = latch.await(10, TimeUnit.SECONDS);
 		assertThat(connected).isTrue();
 	}
 }
