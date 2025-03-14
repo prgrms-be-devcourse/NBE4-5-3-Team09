@@ -37,6 +37,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 @SpringBootTest
+@ActiveProfiles("test")
 public class TickerServiceTest {
 
 	@Mock
