@@ -5,3 +5,4 @@ api_schema.json
 
 **/.turbo
 **/node_modules
+.idea/
