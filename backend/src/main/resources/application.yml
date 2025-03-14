@@ -5,7 +5,7 @@ spring:
   application:
     name: coing
   profiles:
-    active: ${SPRING_ACTIVE_PROFILES:dev}
+    active: ${SPRING_ACTIVE_PROFILES:prod}
   config:
     import: optional:file:./.env[.properties]
   output:
@@ -30,10 +30,10 @@ spring:
   mail:
     verification:
       sender: ${MAIL_USERNAME}
-    host: ${MAIL_HOST:127.0.0.1}
-    port: ${MAIL_PORT:0}
-    username: ${MAIL_USERNAME:dummy}
-    password: ${MAIL_PASSWORD:dummy}
+    host: ${MAIL_HOST}
+    port: ${MAIL_PORT}
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
     properties:
       mail:
         smtp:
