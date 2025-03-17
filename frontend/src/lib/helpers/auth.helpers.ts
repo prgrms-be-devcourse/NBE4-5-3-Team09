@@ -30,11 +30,13 @@ export async function refreshTokens(request: NextRequest) {
     const setCookieHeaders = response.response.headers.getSetCookie();
 
     let newAccessToken = null;
-    try {
-      const parsedData = JSON.parse(data.detail!);
-      newAccessToken = parsedData.accessToken;
-    } catch (error) {
-      console.error('JSON 파싱 오류:', error);
+    if (data && data.detail) {
+      try {
+        const parsedData = JSON.parse(data.detail);
+        newAccessToken = parsedData.accessToken;
+      } catch (error) {
+        console.error('JSON 파싱 오류:', error);
+      }
     }
 
     return {
