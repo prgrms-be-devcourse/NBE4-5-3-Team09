@@ -16,7 +16,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.coing.domain.user.CustomUserPrincipal;
 import com.coing.domain.user.controller.dto.EmailVerificationResponse;
 import com.coing.domain.user.controller.dto.PasswordResetConfirmRequest;
 import com.coing.domain.user.controller.dto.PasswordResetRequest;
@@ -25,6 +24,7 @@ import com.coing.domain.user.controller.dto.UserLoginRequest;
 import com.coing.domain.user.controller.dto.UserResponse;
 import com.coing.domain.user.controller.dto.UserSignUpRequest;
 import com.coing.domain.user.controller.dto.UserSignupResponse;
+import com.coing.domain.user.dto.CustomUserPrincipal;
 import com.coing.domain.user.email.service.EmailVerificationService;
 import com.coing.domain.user.email.service.PasswordResetService;
 import com.coing.domain.user.entity.User;
@@ -32,6 +32,8 @@ import com.coing.domain.user.repository.UserRepository;
 import com.coing.domain.user.service.AuthTokenService;
 import com.coing.domain.user.service.UserService;
 import com.coing.global.exception.BusinessException;
+import com.coing.global.exception.doc.ApiErrorCodeExamples;
+import com.coing.global.exception.doc.ErrorCode;
 import com.coing.util.BasicResponse;
 import com.coing.util.MessageUtil;
 
@@ -58,6 +60,8 @@ public class UserController {
 
 	@Operation(summary = "일반 유저 회원 가입")
 	@PostMapping("/signup")
+	@ApiErrorCodeExamples({ErrorCode.MAIL_SEND_FAIL, ErrorCode.ALREADY_REGISTERED_EMAIL,
+		ErrorCode.INVALID_PASSWORD_CONFIRM})
 	public ResponseEntity<UserSignupResponse> signUp(@RequestBody @Validated UserSignUpRequest request,
 		HttpServletResponse response) {
 		UserResponse user = userService.join(request);
@@ -72,13 +76,14 @@ public class UserController {
 
 	@Operation(summary = "이메일 인증")
 	@GetMapping("/verify-email")
+	@ApiErrorCodeExamples({ErrorCode.MEMBER_NOT_FOUND})
 	public ResponseEntity<?> verifyEmail(@RequestParam(name = "token") String token) {
-		Map<String, Object> claims = authTokenService.verifyToken(token);
-		if (claims == null || claims.get("id") == null) {
+		UUID userId = authTokenService.parseId(token);
+		if (userId == null) {
 			return ResponseEntity.status(HttpStatus.BAD_REQUEST)
 				.body(Map.of("status", "error", "message", "유효하지 않은 토큰입니다."));
 		}
-		UUID userId = UUID.fromString(claims.get("id").toString());
+
 		User user = userRepository.findById(userId)
 			.orElseThrow(() -> new BusinessException(messageUtil.resolveMessage("member.not.found"),
 				HttpStatus.BAD_REQUEST, ""));
@@ -94,6 +99,7 @@ public class UserController {
 
 	@Operation(summary = "이메일 인증 상태 확인", description = "회원가입을 요청한 사용자의 UUID(userId)를 기준으로 이메일 인증 여부를 확인합니다.")
 	@GetMapping("/is-verified")
+	@ApiErrorCodeExamples({ErrorCode.MEMBER_NOT_FOUND})
 	public ResponseEntity<EmailVerificationResponse> isVerified(@RequestParam(name = "userId") UUID userId) {
 		Optional<User> userOpt = userRepository.findById(userId);
 		if (userOpt.isEmpty()) {
@@ -107,6 +113,7 @@ public class UserController {
 
 	@Operation(summary = "이메일 인증 메일 재전송")
 	@PostMapping("/resend-email")
+	@ApiErrorCodeExamples({ErrorCode.MAIL_SEND_FAIL, ErrorCode.MEMBER_NOT_FOUND})
 	public ResponseEntity<?> resendEmail(@RequestParam(name = "userId") UUID userId) {
 		User user = userRepository.findById(userId)
 			.orElseThrow(() -> new BusinessException(
@@ -129,27 +136,23 @@ public class UserController {
 
 	@Operation(summary = "일반 유저 로그인")
 	@PostMapping("/login")
+	@ApiErrorCodeExamples({ErrorCode.EMAIL_NOT_VERIFIED, ErrorCode.MEMBER_NOT_FOUND, ErrorCode.PASSWORD_MISMATCH})
 	public ResponseEntity<BasicResponse> login(@RequestBody @Validated UserLoginRequest request,
 		HttpServletResponse response) {
 		UserResponse user = userService.login(request.email(), request.password());
 		if (!user.verified()) {
 			throw new BusinessException("이메일 인증이 완료되지 않았습니다.", HttpStatus.UNAUTHORIZED, "");
 		}
-		String accessToken = authTokenService.genAccessToken(user);
-		String refreshToken = authTokenService.genRefreshToken(user);
-		Cookie refreshCookie = new Cookie("refreshToken", refreshToken);
-		refreshCookie.setHttpOnly(true);
-		refreshCookie.setSecure(false);
-		refreshCookie.setPath("/");
-		refreshCookie.setMaxAge(604800);
-		response.addCookie(refreshCookie);
-		response.setHeader("Authorization", "Bearer " + accessToken);
+
+		issuedToken(response, user);
 		BasicResponse basicResponse = new BasicResponse(HttpStatus.OK, "로그인 성공", "");
 		return ResponseEntity.ok(basicResponse);
 	}
 
 	@Operation(summary = "토큰 재발급")
 	@PostMapping("/refresh")
+	@ApiErrorCodeExamples({ErrorCode.MEMBER_NOT_FOUND, ErrorCode.INVALID_REFRESH_TOKEN,
+		ErrorCode.REFRESH_TOKEN_REQUIRED})
 	public ResponseEntity<BasicResponse> refreshToken(HttpServletRequest request,
 		HttpServletResponse response) {
 		Cookie[] cookies = request.getCookies();
@@ -176,15 +179,7 @@ public class UserController {
 		if (user == null) {
 			throw new BusinessException(messageUtil.resolveMessage("member.not.found"), HttpStatus.BAD_REQUEST, "");
 		}
-		String newAccessToken = authTokenService.genAccessToken(user);
-		String newRefreshToken = authTokenService.genRefreshToken(user);
-		Cookie newRefreshCookie = new Cookie("refreshToken", newRefreshToken);
-		newRefreshCookie.setHttpOnly(true);
-		newRefreshCookie.setSecure(false);
-		newRefreshCookie.setPath("/");
-		newRefreshCookie.setMaxAge(604800);
-		response.addCookie(newRefreshCookie);
-		response.setHeader("Authorization", "Bearer " + newAccessToken);
+		issuedToken(response, user);
 		return ResponseEntity.ok(new BasicResponse(HttpStatus.OK, "토큰 재발급 성공", ""));
 	}
 
@@ -204,6 +199,7 @@ public class UserController {
 
 	@Operation(summary = "회원 탈퇴", security = @SecurityRequirement(name = "bearerAuth"))
 	@DeleteMapping("/signout")
+	@ApiErrorCodeExamples({ErrorCode.MEMBER_NOT_FOUND, ErrorCode.EMPTY_TOKEN_PROVIDED, ErrorCode.PASSWORD_MISMATCH})
 	public ResponseEntity<?> signOut(@RequestBody @Validated SignOutRequest request,
 		@AuthenticationPrincipal CustomUserPrincipal principal) {
 		if (principal == null) {
@@ -215,6 +211,7 @@ public class UserController {
 
 	@Operation(summary = "회원 정보 조회", security = @SecurityRequirement(name = "bearerAuth"))
 	@GetMapping("/info")
+	@ApiErrorCodeExamples({ErrorCode.MEMBER_NOT_FOUND, ErrorCode.EMPTY_TOKEN_PROVIDED})
 	public ResponseEntity<?> getUserInfo(@AuthenticationPrincipal CustomUserPrincipal principal) {
 		if (principal == null) {
 			throw new BusinessException(messageUtil.resolveMessage("empty.token.provided"), HttpStatus.FORBIDDEN, "");
@@ -225,6 +222,7 @@ public class UserController {
 
 	@Operation(summary = "비밀번호 재설정 요청")
 	@PostMapping("/password-reset/request")
+	@ApiErrorCodeExamples({ErrorCode.MAIL_SEND_FAIL})
 	public ResponseEntity<?> requestPasswordReset(@RequestBody @Validated PasswordResetRequest request) {
 		Optional<User> userOptional = userRepository.findByEmail(request.email());
 		if (userOptional.isEmpty()) {
@@ -238,14 +236,15 @@ public class UserController {
 
 	@Operation(summary = "비밀번호 재설정 확인")
 	@PostMapping("/password-reset/confirm")
+	@ApiErrorCodeExamples({ErrorCode.MEMBER_NOT_FOUND})
 	public ResponseEntity<?> confirmPasswordReset(@RequestParam("token") String token,
 		@RequestBody @Validated PasswordResetConfirmRequest request) {
-		Map<String, Object> claims = authTokenService.verifyToken(token);
-		if (claims == null || claims.get("id") == null) {
+		UUID userId = authTokenService.parseId(token);
+		if (userId == null) {
 			return ResponseEntity.status(HttpStatus.BAD_REQUEST)
 				.body(Map.of("status", "error", "message", "유효하지 않은 토큰입니다."));
 		}
-		UUID userId = UUID.fromString(claims.get("id").toString());
+
 		// 비밀번호와 확인 비밀번호가 일치하는지 검증
 		if (!request.newPassword().equals(request.newPasswordConfirm())) {
 			return ResponseEntity.status(HttpStatus.BAD_REQUEST)
@@ -253,5 +252,22 @@ public class UserController {
 		}
 		userService.updatePassword(userId, request.newPassword());
 		return ResponseEntity.ok(Map.of("status", "success", "message", "비밀번호가 재설정되었습니다."));
+	}
+
+	@Operation(summary = "리다이렉트")
+	@GetMapping
+	public void redirectSocialLogin() {
+	}
+
+	private void issuedToken(HttpServletResponse response, UserResponse user) {
+		String accessToken = authTokenService.genAccessToken(user);
+		String refreshToken = authTokenService.genRefreshToken(user);
+		Cookie refreshCookie = new Cookie("refreshToken", refreshToken);
+		refreshCookie.setHttpOnly(true);
+		refreshCookie.setSecure(false);
+		refreshCookie.setPath("/");
+		refreshCookie.setMaxAge(604800);
+		response.addCookie(refreshCookie);
+		response.setHeader("Authorization", "Bearer " + accessToken);
 	}
 }
