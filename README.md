@@ -47,7 +47,10 @@
  - 추가 기능 (향후 확장)
     - 소셜 회원가입/로그인
     - 코인 항목 별 관련 뉴스 실시간 집계
-      
+
+### API Docs
+- [📃 API 명세서](https://github.com/prgrms-be-devcourse/NBE4-5-2-Team09/wiki/API-%EB%AA%85%EC%84%B8)
+
 ### User Flow
 - [👨‍💻 User Flow](https://github.com/prgrms-be-devcourse/NBE4-5-2-Team09/wiki/User-Flow)
 
