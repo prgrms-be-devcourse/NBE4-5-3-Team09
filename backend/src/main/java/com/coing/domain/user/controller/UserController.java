@@ -187,6 +187,7 @@ public class UserController {
 	@Operation(summary = "회원 로그아웃")
 	@PostMapping("/logout")
 	public ResponseEntity<BasicResponse> logout(HttpServletRequest request, HttpServletResponse response) {
+
 		ResponseCookie expiredCookie = ResponseCookie.from("refreshToken", "")
 			.httpOnly(true)
 			.secure(true)
@@ -196,6 +197,7 @@ public class UserController {
 			.build();
 
 		response.setHeader("Set-Cookie", expiredCookie.toString());
+
 
 		return ResponseEntity.ok(new BasicResponse(HttpStatus.OK, "로그아웃 성공", "로그아웃 처리 완료"));
 	}
