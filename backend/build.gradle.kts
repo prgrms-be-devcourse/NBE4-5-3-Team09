@@ -1,5 +1,4 @@
 plugins {
-    java
     kotlin("jvm") version "1.9.25"
     kotlin("plugin.spring") version "1.9.25"
     kotlin("plugin.allopen") version "1.9.25"
@@ -67,6 +66,7 @@ dependencies {
     implementation(kotlin("stdlib"))
     implementation ("org.jetbrains.kotlin:kotlin-reflect")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
+    testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
 }
 
 tasks.named<Test>("test") {
