@@ -1,71 +1,61 @@
-package com.coing.domain.chat.handler;
+package com.coing.domain.chat.handler
 
-import org.springframework.stereotype.Component;
-import org.springframework.web.socket.CloseStatus;
-import org.springframework.web.socket.TextMessage;
-import org.springframework.web.socket.WebSocketHandler;
-import org.springframework.web.socket.WebSocketMessage;
-import org.springframework.web.socket.WebSocketSession;
-
-import com.coing.domain.chat.entity.ChatMessage;
-import com.coing.domain.chat.service.ChatService;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import com.coing.domain.chat.entity.ChatMessage
+import com.coing.domain.chat.service.ChatService
+import com.coing.domain.user.entity.User
+import com.fasterxml.jackson.databind.ObjectMapper
+import org.slf4j.LoggerFactory
+import org.springframework.stereotype.Component
+import org.springframework.web.socket.CloseStatus
+import org.springframework.web.socket.TextMessage
+import org.springframework.web.socket.WebSocketHandler
+import org.springframework.web.socket.WebSocketMessage
+import org.springframework.web.socket.WebSocketSession
 
 @Component
-@RequiredArgsConstructor
-@Slf4j
-public class ChatWebSocketHandler implements WebSocketHandler {
+class ChatWebSocketHandler(
+    private val chatService: ChatService,
+    private val objectMapper: ObjectMapper
+) : WebSocketHandler {
 
-	private final ChatService chatService;
-	private final ObjectMapper objectMapper;
+    private val log = LoggerFactory.getLogger(ChatWebSocketHandler::class.java)
 
-	@Override
-	public void afterConnectionEstablished(WebSocketSession session) throws Exception {
-		log.info("WebSocket connection established: {}", session.getId());
-	}
+    override fun afterConnectionEstablished(session: WebSocketSession) {
+        log.info("WebSocket connection established: {}", session.id)
+    }
 
-	@Override
-	public void handleMessage(WebSocketSession session, WebSocketMessage<?> message) throws Exception {
-		// 클라이언트에서 JSON 형태로 { "roomId":Long, "senderId":UUID, "content":String } 전송
-		try {
-			ChatMessageRequest request = objectMapper.readValue(message.getPayload().toString(),
-				ChatMessageRequest.class);
-			ChatMessage chatMessage = chatService.sendMessage(request.getRoomId(),
-				com.coing.domain.user.entity.User.builder().id(request.getSenderId()).build(),
-				request.getContent());
-			// 클라이언트에 전송한 메시지 반환 (실제 환경에서는 브로드캐스트 처리 필요)
-			String response = objectMapper.writeValueAsString(chatMessage);
-			session.sendMessage(new TextMessage(response));
-		} catch (Exception e) {
-			log.error("Error handling WebSocket message", e);
-		}
-	}
+    override fun handleMessage(session: WebSocketSession, message: WebSocketMessage<*>) {
+        try {
+            // 클라이언트에서 JSON 형태로 { "roomId":Long, "senderId":UUID, "content":String } 전송
+            val request = objectMapper.readValue(message.payload.toString(), ChatMessageRequest::class.java)
+            val chatMessage: ChatMessage = chatService.sendMessage(
+                request.roomId,
+                // 빌더 대신 생성자 호출: User 엔티티에 기본값이 설정되어 있다면 id만 전달해도 됨
+                User(id = request.senderId),
+                request.content
+            )
+            // 클라이언트에 전송할 메시지(JSON 문자열) 생성
+            val response = objectMapper.writeValueAsString(chatMessage)
+            session.sendMessage(TextMessage(response))
+        } catch (e: Exception) {
+            log.error("Error handling WebSocket message", e)
+        }
+    }
 
-	@Override
-	public void handleTransportError(WebSocketSession session, Throwable exception) throws Exception {
-		log.error("Transport error: {}", session.getId(), exception);
-	}
+    override fun handleTransportError(session: WebSocketSession, exception: Throwable) {
+        log.error("Transport error: {} with exception", session.id, exception)
+    }
 
-	@Override
-	public void afterConnectionClosed(WebSocketSession session, CloseStatus closeStatus) throws Exception {
-		log.info("WebSocket connection closed: {} with status {}", session.getId(), closeStatus);
-	}
+    override fun afterConnectionClosed(session: WebSocketSession, closeStatus: CloseStatus) {
+        log.info("WebSocket connection closed: {} with status {}", session.id, closeStatus)
+    }
 
-	@Override
-	public boolean supportsPartialMessages() {
-		return false;
-	}
+    override fun supportsPartialMessages(): Boolean = false
 
-	// 내부 DTO for WebSocket 메시지 요청
-	@Getter
-	public static class ChatMessageRequest {
-		private Long roomId;
-		private java.util.UUID senderId;
-		private String content;
-
-	}
+    // 내부 DTO for WebSocket 메시지 요청
+    data class ChatMessageRequest(
+        val roomId: Long,
+        val senderId: java.util.UUID,
+        val content: String
+    )
 }

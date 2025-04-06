@@ -1,81 +1,73 @@
-package com.coing.domain.chat.service;
+package com.coing.domain.chat.service
 
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.atomic.AtomicLong;
-
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import com.coing.domain.chat.entity.ChatMessage;
-import com.coing.domain.chat.entity.ChatRoom;
-import com.coing.domain.chat.repository.ChatMessageRepository;
-import com.coing.domain.chat.repository.ChatRoomRepository;
-import com.coing.domain.coin.market.entity.Market;
-import com.coing.domain.coin.market.service.MarketService;
-import com.coing.domain.user.entity.User;
-import com.github.benmanes.caffeine.cache.Cache;
-
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import com.coing.domain.chat.entity.ChatMessage
+import com.coing.domain.chat.entity.ChatRoom
+import com.coing.domain.chat.repository.ChatMessageRepository
+import com.coing.domain.chat.repository.ChatRoomRepository
+import com.coing.domain.coin.market.entity.Market
+import com.coing.domain.coin.market.service.MarketService
+import com.coing.domain.user.entity.User
+import com.github.benmanes.caffeine.cache.Cache
+import org.slf4j.LoggerFactory
+import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
+import java.time.LocalDateTime
+import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.atomic.AtomicLong
 
 @Service
-@RequiredArgsConstructor
-@Slf4j
-public class ChatService {
+class ChatService(
+    private val chatRoomRepository: ChatRoomRepository,
+    private val chatMessageRepository: ChatMessageRepository,
+    private val marketService: MarketService,
+    private val chatMessageCache: Cache<Long, List<ChatMessage>>
+) {
 
-	private final ChatRoomRepository chatRoomRepository;
-	private final ChatMessageRepository chatMessageRepository;
-	private final MarketService marketService;
-	private final Cache<Long, List<ChatMessage>> chatMessageCache;
-	private final AtomicLong messageIdSequence = new AtomicLong(1);
+    private val messageIdSequence = AtomicLong(1)
+    private val log = LoggerFactory.getLogger(ChatService::class.java)
 
-	@Transactional
-	public ChatRoom getOrCreateChatRoomByMarketCode(String marketCode) {
-		return chatRoomRepository.findByMarketCode(marketCode)
-			.orElseGet(() -> {
-				Market market = marketService.getCachedMarketByCode(marketCode);
-				ChatRoom chatRoom = ChatRoom.builder()
-					.market(market)
-					.name(market.getKoreanName() + " 채팅방")
-					.createdAt(LocalDateTime.now())
-					.build();
-				return chatRoomRepository.save(chatRoom);
-			});
-	}
+    @Transactional
+    fun getOrCreateChatRoomByMarketCode(marketCode: String): ChatRoom {
+        return chatRoomRepository.findByMarketCode(marketCode).orElseGet {
+            // 마켓 정보 조회
+            val market: Market = marketService.getCachedMarketByCode(marketCode)
+            // 새로운 ChatRoom 인스턴스 생성 (builder 없이 생성자 호출)
+            val chatRoom = ChatRoom(
+                market = market,
+//                name = "${market.koreanName} 채팅방",   임시 주석처리
+                name = "채팅방",
+                createdAt = LocalDateTime.now()
+            )
+            chatRoomRepository.save(chatRoom)
+        }
+    }
 
-	@Transactional
-	public ChatMessage sendMessage(Long chatRoomId, User sender, String content) {
-		ChatRoom chatRoom = chatRoomRepository.findById(chatRoomId)
-			.orElseThrow(() -> new RuntimeException("Chat room not found"));
+    @Transactional
+    fun sendMessage(chatRoomId: Long, sender: User, content: String): ChatMessage {
+        val chatRoom = chatRoomRepository.findById(chatRoomId)
+            .orElseThrow { RuntimeException("Chat room not found") }
 
-		ChatMessage message = ChatMessage.builder()
-			.id(messageIdSequence.getAndIncrement())
-			.chatRoom(chatRoom)
-			.sender(sender)
-			.content(content)
-			.timestamp(LocalDateTime.now())
-			.build();
+        // 새로운 ChatMessage 인스턴스 생성 (builder 대신 생성자 호출)
+        val message = ChatMessage(
+            id = messageIdSequence.getAndIncrement(),
+            chatRoom = chatRoom,
+            sender = sender,
+            content = content,
+            timestamp = LocalDateTime.now()
+        )
 
-		// 스레드 세이프한 리스트로 캐시에 저장
-		List<ChatMessage> messages = chatMessageCache.getIfPresent(chatRoomId);
-		if (messages == null) {
-			messages = new CopyOnWriteArrayList<>();
-		}
-		messages.add(message);
-		chatMessageCache.put(chatRoomId, messages);
+        // 스레드 세이프한 리스트로 캐시에 저장
+        val messages = chatMessageCache.getIfPresent(chatRoomId)?.toMutableList()
+            ?: CopyOnWriteArrayList<ChatMessage>()
+        messages.add(message)
+        chatMessageCache.put(chatRoomId, messages)
 
-		// 캐시 저장 후 로그 출력
-		log.info("Cached message in chat room {}: {}", chatRoomId, message);
+        log.info("Cached message in chat room {}: {}", chatRoomId, message)
+        return message
+    }
 
-		return message;
-	}
-
-	@Transactional(readOnly = true)
-	public List<ChatMessage> getMessages(Long chatRoomId) {
-		return Optional.ofNullable(chatMessageCache.getIfPresent(chatRoomId))
-			.orElse(new CopyOnWriteArrayList<>());
-	}
+    @Transactional(readOnly = true)
+    fun getMessages(chatRoomId: Long): List<ChatMessage> {
+        return chatMessageCache.getIfPresent(chatRoomId) ?: CopyOnWriteArrayList()
+    }
 }

@@ -48,7 +48,7 @@ class ChatWebSocketController(
 
         // 채팅방 조회 (없으면 생성)
         val chatRoom: ChatRoom = chatService.getOrCreateChatRoomByMarketCode(market)
-        val chatRoomId: Long = chatRoom.id
+        val chatRoomId: Long = chatRoom.id ?: throw RuntimeException("ChatRoom id is null")
 
         // User 엔티티 생성 (빌더 대신 Kotlin 기본 생성자 사용)
         val senderUser = User(
