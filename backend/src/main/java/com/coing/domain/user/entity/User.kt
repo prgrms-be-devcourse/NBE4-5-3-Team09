@@ -1,81 +1,57 @@
-package com.coing.domain.user.entity;
+package com.coing.domain.user.entity
 
-import java.util.UUID;
-
-import org.hibernate.annotations.UuidGenerator;
-
-import com.coing.util.BaseEntity;
-
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.Id;
-import jakarta.persistence.PrePersist;
-import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.With;
+import com.coing.util.BaseEntity
+import jakarta.persistence.*
+import org.hibernate.annotations.UuidGenerator
+import java.util.UUID
 
 @Entity
 @Table(name = "member")
-@Getter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
-@With
-public class User extends BaseEntity {
+data class User(
+    @Id
+    @GeneratedValue
+    @UuidGenerator
+    @Column(name = "user_id", updatable = false, nullable = false)
+    val id: UUID? = null,
 
-	@Id
-	@GeneratedValue
-	@UuidGenerator
-	@Column(name = "user_id", updatable = false, nullable = false)
-	private UUID id;
+    @Column(name = "user_name", nullable = false)
+    val name: String,
 
-	@Column(name = "user_name", nullable = false)
-	private String name;
+    // 이메일
+    @Column(name = "email", nullable = false, unique = true)
+    val email: String = "",
 
-	// 이메일
-	@Column(name = "email", nullable = false, unique = true)
-	private String email;
+    // 비밀번호
+    @Column(name = "password", nullable = false)
+    val password: String = "",
 
-	// 비밀번호
-	@Column(name = "password", nullable = false)
-	private String password;
+    // 권한 (값이 없을 경우 prePersist()에서 Authority.USER 로 설정)
+    @Column(name = "authority", nullable = false)
+    var authority: Authority? = null,
 
-	// 권한
-	@Column(name = "authority", nullable = false)
-	private Authority authority;
+    // 이메일 인증 여부 (기본값은 false)
+    @Column(name = "verified", nullable = false, columnDefinition = "boolean default false")
+    val verified: Boolean = false,
 
-	// 회원 가입 시각 기록
-	// @Column(name = "created_at", nullable = false, updatable = false)
-	// private LocalDateTime createdAt;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "provider", nullable = false)
+    val provider: Provider = Provider.EMAIL
+) : BaseEntity() {
 
-	@PrePersist
-	public void prePersist() {
-		if (authority == null) {
-			authority = Authority.USER;
-		}
-		/*if (createdAt == null) {
-			createdAt = LocalDateTime.now();
-		}*/
-	}
+    @PrePersist
+    fun prePersist() {
+        if (authority == null) {
+            authority = Authority.USER
+        }
+        // 가입 시각 기록 필드가 필요하다면 추가하세요.
+        // if (createdAt == null) {
+        //     createdAt = LocalDateTime.now()
+        // }
+    }
 
-	// 이메일 인증 여부
-	@Column(name = "verified", nullable = false, columnDefinition = "boolean default false")
-	private boolean verified;
-
-	/**
-	 * 이메일 인증이 완료되었음을 업데이트합니다.
-	 */
-	public User verifyEmail() {
-		return this.withVerified(true);
-	}
-
-	@Enumerated(EnumType.STRING)
-	@Column(name = "provider", nullable = false)
-	private Provider provider;
+    /**
+     * 이메일 인증이 완료되었음을 업데이트합니다.
+     * (기존 인스턴스를 복사하여 verified 값을 true로 변경합니다.)
+     */
+    fun verifyEmail(): User = this.copy(verified = true)
 }
