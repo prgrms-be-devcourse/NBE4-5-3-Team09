@@ -15,10 +15,10 @@ class AuthTokenService {
     lateinit var jwtSecretKey: String
 
     @Value("\${custom.jwt.expire-seconds}")
-    var jwtExpireSeconds: Int = 0
+    var jwtExpireSeconds: Int = 1800
 
     @Value("\${custom.jwt.refresh-expire-seconds}")
-    var jwtRefreshExpireSeconds: Int = 0
+    var jwtRefreshExpireSeconds: Int = 604800
 
     private val log = LoggerFactory.getLogger(AuthTokenService::class.java)
 
