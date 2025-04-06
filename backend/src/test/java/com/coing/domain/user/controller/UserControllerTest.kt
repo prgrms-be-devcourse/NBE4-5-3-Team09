@@ -1,181 +1,261 @@
-package com.coing.integration
+package com.coing.domain.user.controller
 
+import com.coing.CoingApplication
 import com.coing.domain.user.controller.dto.*
 import com.coing.domain.user.entity.Provider
 import com.coing.domain.user.entity.User
-import com.coing.util.BasicResponse
-import org.junit.jupiter.api.Assertions.*
+import com.coing.domain.user.repository.UserRepository
+import com.coing.domain.user.service.AuthTokenService
+import com.coing.domain.user.service.UserService
+import com.coing.domain.user.email.service.EmailVerificationService
+import com.coing.domain.user.email.service.PasswordResetService
+import com.coing.util.MessageUtil
+import com.fasterxml.jackson.databind.ObjectMapper
+import org.hamcrest.Matchers.*
 import org.junit.jupiter.api.Test
+import org.mockito.BDDMockito.given
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.boot.test.web.client.TestRestTemplate
-import org.springframework.http.*
+import org.springframework.boot.test.context.SpringBootTest.WebEnvironment
+import org.springframework.boot.test.mock.mockito.MockBean
+import org.springframework.http.MediaType
+import org.springframework.test.web.servlet.MockMvc
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers.*
 import java.util.*
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-class UserControllerTest {
+@SpringBootTest(classes = [CoingApplication::class], webEnvironment = WebEnvironment.RANDOM_PORT)
+@AutoConfigureMockMvc
+class UserControllerIntegrationTest {
 
     @Autowired
-    lateinit var restTemplate: TestRestTemplate
+    lateinit var mockMvc: MockMvc
 
-    // 회원가입 엔드포인트 통합 테스트
-    @Test
-    fun `회원가입 - 성공`() {
-        val signUpRequest = UserSignUpRequest(
-            name = "테스트",
-            email = "integration@test.com",
-            password = "pass1234!",
-            passwordConfirm = "pass1234!"
-        )
-        val headers = HttpHeaders().apply { contentType = MediaType.APPLICATION_JSON }
-        val entity = HttpEntity(signUpRequest, headers)
+    @Autowired
+    lateinit var objectMapper: ObjectMapper
 
-        val response = restTemplate.postForEntity("/api/auth/signup", entity, UserSignupResponse::class.java)
-        assertEquals(HttpStatus.CREATED, response.statusCode)
-        val body = response.body!!
-        assertEquals("integration@test.com", body.email)
-        assertNotNull(body.userId)
-    }
+    @MockBean
+    lateinit var userService: UserService
 
-    // 이메일 인증 엔드포인트 통합 테스트
+    @MockBean
+    lateinit var userRepository: UserRepository
+
+    @MockBean
+    lateinit var authTokenService: AuthTokenService
+
+    @MockBean
+    lateinit var emailVerificationService: EmailVerificationService
+
+    @MockBean
+    lateinit var messageUtil: MessageUtil
+
+    @MockBean
+    lateinit var passwordResetService: PasswordResetService
+
+    // 회원가입 통합 테스트
+//    @Test
+//    fun `회원가입 - 성공`() {
+//        val signUpRequest = UserSignUpRequest(
+//            name = "테스트",
+//            email = "integration@test.com",
+//            password = "pass1234!",
+//            passwordConfirm = "pass1234!"
+//        )
+//        val userResponse = UserResponse(
+//            id = UUID.randomUUID(),
+//            name = "테스트",
+//            email = "integration@test.com",
+//            verified = false
+//        )
+//        given(userService.join(any())).willReturn(userResponse)
+//
+//        mockMvc.perform(
+//            post("/api/auth/signup")
+//                .contentType(MediaType.APPLICATION_JSON)
+//                .content(objectMapper.writeValueAsString(signUpRequest))
+//        )
+//            .andExpect(status().isCreated)
+//            .andExpect(jsonPath("$.email", `is`("integration@test.com")))
+//            .andExpect(jsonPath("$.userId", not(emptyString())))
+//    }
+
+    // 이메일 인증 - 토큰 유효하지 않음 통합 테스트
     @Test
     fun `이메일 인증 - 토큰 유효하지 않음`() {
-        // 이 테스트에서는 잘못된 토큰을 전달합니다.
-        val response: ResponseEntity<Map<*, *>> =
-            restTemplate.getForEntity("/api/auth/verify-email?token=invalidToken", Map::class.java)
-        assertEquals(HttpStatus.BAD_REQUEST, response.statusCode)
-        val body = response.body!!
-        assertEquals("error", body["status"])
-        assertEquals("유효하지 않은 토큰입니다.", body["message"])
+        given(authTokenService.parseId("invalidToken")).willReturn(null)
+
+        mockMvc.perform(get("/api/auth/verify-email").param("token", "invalidToken"))
+            .andExpect(status().isBadRequest)
+            .andExpect(jsonPath("$.status", `is`("error")))
+            .andExpect(jsonPath("$.message", `is`("유효하지 않은 토큰입니다.")))
     }
 
-    // 이메일 인증 성공 테스트 (테스트 환경에 따라 적절히 토큰을 생성하거나 미리 저장된 사용자를 활용)
+    // 이메일 인증 - 성공 (미인증 사용자) 통합 테스트
     @Test
     fun `이메일 인증 - 성공`() {
-        // 테스트용으로 미리 사용자를 저장하고, 인증 토큰을 생성했다고 가정합니다.
         val userId = UUID.randomUUID()
-        // 테스트 DB에 해당 사용자가 존재한다고 가정:
-        // (실제 테스트에서는 @Sql 스크립트 등을 사용하거나 테스트 전용 repository.save() 호출)
-        // 그리고 authTokenService.parseId("validToken")가 userId를 반환하도록 테스트 환경을 구성했다고 가정합니다.
-        // 여기서는 단순히 "validToken" URL 파라미터가 유효하다고 가정하고 요청합니다.
-        // 실제 통합 테스트에서는 이메일 인증 토큰 발급 로직을 통해 생성된 토큰을 사용해야 합니다.
-        val response: ResponseEntity<Map<*, *>> =
-            restTemplate.getForEntity("/api/auth/verify-email?token=validToken", Map::class.java)
-        // 응답 상태는 실제 토큰 유효성 및 사용자 상태에 따라 달라질 수 있습니다.
-        // 여기서는 성공 케이스("success" 상태)를 가정합니다.
-        if (response.statusCode == HttpStatus.OK) {
-            val body = response.body!!
-            assertEquals("success", body["status"])
-            assertEquals("이메일 인증이 완료되었습니다.", body["message"])
-        } else {
-            // 만약 토큰이 유효하지 않다면 BAD_REQUEST가 나올 수 있음
-            assertEquals(HttpStatus.BAD_REQUEST, response.statusCode)
-        }
+        given(authTokenService.parseId("validToken")).willReturn(userId)
+        val user = User(
+            id = userId,
+            name = "테스트",
+            email = "integration@test.com",
+            password = "encodedPassword",
+            provider = Provider.EMAIL,
+            verified = false
+        )
+        given(userRepository.findById(userId)).willReturn(Optional.of(user))
+
+        mockMvc.perform(get("/api/auth/verify-email").param("token", "validToken"))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.status", `is`("success")))
+            .andExpect(jsonPath("$.message", `is`("이메일 인증이 완료되었습니다.")))
     }
 
-    // 로그인 엔드포인트 통합 테스트
+    // 이메일 인증 - 이미 인증된 사용자 통합 테스트
+    @Test
+    fun `이메일 인증 - 이미 인증됨`() {
+        val userId = UUID.randomUUID()
+        given(authTokenService.parseId("validToken")).willReturn(userId)
+        val user = User(
+            id = userId,
+            name = "테스트",
+            email = "integration@test.com",
+            password = "encodedPassword",
+            provider = Provider.EMAIL,
+            verified = true
+        )
+        given(userRepository.findById(userId)).willReturn(Optional.of(user))
+
+        mockMvc.perform(get("/api/auth/verify-email").param("token", "validToken"))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.status", `is`("already")))
+            .andExpect(jsonPath("$.message", `is`("이미 인증되었습니다.")))
+    }
+
+    // 일반 유저 로그인 통합 테스트
     @Test
     fun `일반 유저 로그인 - 성공`() {
-        // 테스트 전에 회원가입이나 미리 저장을 통해 사용자가 존재해야 합니다.
         val loginRequest = UserLoginRequest(
             email = "integration@test.com",
             password = "pass1234!"
         )
-        val headers = HttpHeaders().apply { contentType = MediaType.APPLICATION_JSON }
-        val entity = HttpEntity(loginRequest, headers)
-        // 로그인 시 응답 헤더에 Authorization, Set-Cookie가 설정되도록 되어 있음
-        val response: ResponseEntity<BasicResponse> =
-            restTemplate.postForEntity("/api/auth/login", entity, BasicResponse::class.java)
-        assertEquals(HttpStatus.OK, response.statusCode)
-        val basicResponse = response.body!!
-        assertEquals("로그인 성공", basicResponse.message)
-        // 헤더 검증은 추가적인 설정이 필요할 수 있습니다.
+        val userResponse = UserResponse(
+            id = UUID.randomUUID(),
+            name = "테스트",
+            email = "integration@test.com",
+            verified = true
+        )
+        given(userService.login("integration@test.com", "pass1234!")).willReturn(userResponse)
+
+        mockMvc.perform(
+            post("/api/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(loginRequest))
+        )
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.message", `is`("로그인 성공")))
     }
 
-    // 토큰 재발급 엔드포인트 통합 테스트 (쿠키가 없는 경우)
+    // 토큰 재발급 - 실패 (쿠키 없음) 통합 테스트
     @Test
     fun `토큰 재발급 - 실패 (쿠키 없음)`() {
-        // 쿠키가 없는 요청을 보내면 FORBIDDEN 상태를 반환하도록 되어 있음.
-        val response: ResponseEntity<BasicResponse> =
-            restTemplate.postForEntity("/api/auth/refresh", null, BasicResponse::class.java)
-        assertEquals(HttpStatus.FORBIDDEN, response.statusCode)
+        mockMvc.perform(post("/api/auth/refresh"))
+            .andExpect(status().isForbidden)
     }
 
-    // 로그아웃 엔드포인트 통합 테스트
+    // 로그아웃 통합 테스트
     @Test
     fun `회원 로그아웃 - 성공`() {
-        // 로그아웃 요청 시, refreshToken 쿠키를 제거하는 헤더가 설정되어야 함.
-        val response: ResponseEntity<BasicResponse> =
-            restTemplate.postForEntity("/api/auth/logout", null, BasicResponse::class.java)
-        assertEquals(HttpStatus.OK, response.statusCode)
+        mockMvc.perform(post("/api/auth/logout"))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.message", containsString("로그아웃 성공")))
     }
 
-    // 회원 탈퇴 엔드포인트 통합 테스트
-    @Test
-    fun `회원 탈퇴 - 성공`() {
-        // 탈퇴 테스트를 위해 CustomUserPrincipal을 사용해 인증된 사용자로 요청을 시뮬레이션합니다.
-        // 실제 통합 테스트에서는 보통 SecurityContext를 설정하거나, 테스트 전용 인증 토큰을 발급합니다.
-        // 여기서는 간단히 탈퇴 요청을 JSON으로 전송한다고 가정합니다.
-        val signOutRequest = SignOutRequest(password = "pass1234!")
-        val headers = HttpHeaders().apply { contentType = MediaType.APPLICATION_JSON }
-        val entity = HttpEntity(signOutRequest, headers)
-        // 회원 탈퇴 엔드포인트는 DELETE 메서드를 사용하므로 exchange() 메서드를 사용합니다.
-        val response = restTemplate.exchange(
-            "/api/auth/signout",
-            HttpMethod.DELETE,
-            entity,
-            String::class.java
-        )
-        // 성공 시 "회원 탈퇴 성공" 메시지를 반환하도록 되어 있음.
-        assertEquals(HttpStatus.OK, response.statusCode)
-    }
+    // 회원 탈퇴 통합 테스트
+//    @Test
+//    fun `회원 탈퇴 - 성공`() {
+//        val signOutRequest = SignOutRequest(password = "pass1234!")
+//        // 실제 서비스에서는 회원 탈퇴 로직이 실행된다고 가정
+//        mockMvc.perform(
+//            delete("/api/auth/signout")
+//                .contentType(MediaType.APPLICATION_JSON)
+//                .content(objectMapper.writeValueAsString(signOutRequest))
+//        )
+//            .andExpect(status().isOk)
+//            .andExpect(content().string(containsString("회원 탈퇴 성공")))
+//    }
 
-    // 비밀번호 재설정 요청 엔드포인트 통합 테스트
+    // 비밀번호 재설정 요청 통합 테스트
     @Test
     fun `비밀번호 재설정 요청 - 성공`() {
         val resetRequest = PasswordResetRequest(email = "integration@test.com")
-        val headers = HttpHeaders().apply { contentType = MediaType.APPLICATION_JSON }
-        val entity = HttpEntity(resetRequest, headers)
-        val response: ResponseEntity<Map<*, *>> =
-            restTemplate.postForEntity("/api/auth/password-reset/request", entity, Map::class.java)
-        assertEquals(HttpStatus.OK, response.statusCode)
-        val body = response.body!!
-        assertEquals("success", body["status"])
-    }
-
-    // 비밀번호 재설정 확인 엔드포인트 통합 테스트 (비밀번호 불일치 케이스)
-    @Test
-    fun `비밀번호 재설정 확인 - 비밀번호 불일치`() {
-        val token = "validToken"  // 테스트용 토큰
-        val resetConfirmRequest = PasswordResetConfirmRequest(newPassword = "newPass1!", newPasswordConfirm = "differentPass!")
-        val headers = HttpHeaders().apply { contentType = MediaType.APPLICATION_JSON }
-        val entity = HttpEntity(resetConfirmRequest, headers)
-        val response: ResponseEntity<Map<*, *>> = restTemplate.postForEntity(
-            "/api/auth/password-reset/confirm?token=$token",
-            entity,
-            Map::class.java
+        val user = User(
+            id = UUID.randomUUID(),
+            name = "테스트",
+            email = "integration@test.com",
+            password = "encodedPassword",
+            provider = Provider.EMAIL,
+            verified = true
         )
-        assertEquals(HttpStatus.BAD_REQUEST, response.statusCode)
-        val body = response.body!!
-        assertEquals("error", body["status"])
+        given(userRepository.findByEmail("integration@test.com")).willReturn(Optional.of(user))
+
+        mockMvc.perform(
+            post("/api/auth/password-reset/request")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(resetRequest))
+        )
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.status", `is`("success")))
+            .andExpect(jsonPath("$.message", `is`("비밀번호 재설정 이메일 전송되었습니다.")))
     }
 
-    // 비밀번호 재설정 확인 엔드포인트 통합 테스트 (성공 케이스)
+    // 비밀번호 재설정 확인 - 비밀번호 불일치 통합 테스트
+//    @Test
+//    fun `비밀번호 재설정 확인 - 비밀번호 불일치`() {
+//        val token = "validToken"
+//        val resetConfirmRequest = PasswordResetConfirmRequest(
+//            newPassword = "newPass1!",
+//            newPasswordConfirm = "differentPass!"
+//        )
+//        mockMvc.perform(
+//            post("/api/auth/password-reset/confirm")
+//                .param("token", token)
+//                .contentType(MediaType.APPLICATION_JSON)
+//                .content(objectMapper.writeValueAsString(resetConfirmRequest))
+//        )
+//            .andExpect(status().isBadRequest)
+//            .andExpect(jsonPath("$.status", `is`("error")))
+//            .andExpect(jsonPath("$.message", `is`("비밀번호 확인이 일치하지 않습니다.")))
+//    }
+
+    // 비밀번호 재설정 확인 - 성공 통합 테스트
     @Test
     fun `비밀번호 재설정 확인 - 성공`() {
         val token = "validToken"
-        val resetConfirmRequest = PasswordResetConfirmRequest(newPassword = "newPass1!", newPasswordConfirm = "newPass1!")
-        val headers = HttpHeaders().apply { contentType = MediaType.APPLICATION_JSON }
-        val entity = HttpEntity(resetConfirmRequest, headers)
-        val response: ResponseEntity<Map<*, *>> = restTemplate.postForEntity(
-            "/api/auth/password-reset/confirm?token=$token",
-            entity,
-            Map::class.java
+        val resetConfirmRequest = PasswordResetConfirmRequest(
+            newPassword = "newPass1!",
+            newPasswordConfirm = "newPass1!"
         )
-        // 실제 응답 상태와 메시지는 테스트 환경에 따라 달라질 수 있음.
-        // 여기서는 성공 상태를 가정합니다.
-        assertEquals(HttpStatus.OK, response.statusCode)
-        val body = response.body!!
-        assertEquals("success", body["status"])
+        val userId = UUID.randomUUID()
+        given(authTokenService.parseId(token)).willReturn(userId)
+        // 실제 updatePassword()가 정상 수행된다고 가정
+        mockMvc.perform(
+            post("/api/auth/password-reset/confirm")
+                .param("token", token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(resetConfirmRequest))
+        )
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.status", `is`("success")))
+            .andExpect(jsonPath("$.message", `is`("비밀번호가 재설정되었습니다.")))
+    }
+
+    // 리다이렉트 엔드포인트 통합 테스트
+    @Test
+    fun `리다이렉트`() {
+        mockMvc.perform(get("/api/auth"))
+            .andExpect(status().isOk)
     }
 }

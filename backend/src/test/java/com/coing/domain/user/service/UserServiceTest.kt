@@ -1,16 +1,14 @@
-package com.coing.domain.user.controller
+package com.coing.domain.user.service
 
+import com.coing.domain.user.controller.UserController
 import com.coing.domain.user.controller.dto.*
 import com.coing.domain.user.dto.CustomUserPrincipal
 import com.coing.domain.user.entity.Provider
 import com.coing.domain.user.entity.User
 import com.coing.domain.user.repository.UserRepository
-import com.coing.domain.user.service.AuthTokenService
-import com.coing.domain.user.service.UserService
 import com.coing.domain.user.email.service.EmailVerificationService
 import com.coing.domain.user.email.service.PasswordResetService
 import com.coing.global.exception.BusinessException
-import com.coing.util.BasicResponse
 import com.coing.util.MessageUtil
 import jakarta.servlet.http.Cookie
 import jakarta.servlet.http.HttpServletRequest
@@ -22,9 +20,7 @@ import org.junit.jupiter.api.Test
 import org.mockito.ArgumentMatchers.anyString
 import org.mockito.Mockito.*
 import org.springframework.http.HttpStatus
-import org.springframework.http.ResponseCookie
 import org.springframework.http.ResponseEntity
-import java.time.LocalDateTime
 import java.util.*
 
 internal class UserControllerTest {
