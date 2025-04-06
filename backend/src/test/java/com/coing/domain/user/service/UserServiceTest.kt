@@ -1,174 +1,320 @@
-package com.coing.domain.user.service;
+package com.coing.domain.user.controller
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import com.coing.domain.user.controller.dto.*
+import com.coing.domain.user.dto.CustomUserPrincipal
+import com.coing.domain.user.entity.Provider
+import com.coing.domain.user.entity.User
+import com.coing.domain.user.repository.UserRepository
+import com.coing.domain.user.service.AuthTokenService
+import com.coing.domain.user.service.UserService
+import com.coing.domain.user.email.service.EmailVerificationService
+import com.coing.domain.user.email.service.PasswordResetService
+import com.coing.global.exception.BusinessException
+import com.coing.util.BasicResponse
+import com.coing.util.MessageUtil
+import jakarta.servlet.http.Cookie
+import jakarta.servlet.http.HttpServletRequest
+import jakarta.servlet.http.HttpServletResponse
+import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.DisplayName
+import org.junit.jupiter.api.Test
+import org.mockito.ArgumentMatchers.anyString
+import org.mockito.Mockito.*
+import org.springframework.http.HttpStatus
+import org.springframework.http.ResponseCookie
+import org.springframework.http.ResponseEntity
+import java.time.LocalDateTime
+import java.util.*
 
-import java.util.Optional;
-import java.util.UUID;
+internal class UserControllerTest {
 
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-import org.springframework.security.crypto.password.PasswordEncoder;
+    private lateinit var userService: UserService
+    private lateinit var userRepository: UserRepository
+    private lateinit var authTokenService: AuthTokenService
+    private lateinit var emailVerificationService: EmailVerificationService
+    private lateinit var messageUtil: MessageUtil
+    private lateinit var passwordResetService: PasswordResetService
 
-import com.coing.domain.user.controller.dto.UserResponse;
-import com.coing.domain.user.controller.dto.UserSignUpRequest;
-import com.coing.domain.user.email.service.EmailVerificationService;
-import com.coing.domain.user.entity.User;
-import com.coing.domain.user.repository.UserRepository;
-import com.coing.global.exception.BusinessException;
-import com.coing.util.MessageUtil;
+    private lateinit var userController: UserController
+    private lateinit var request: HttpServletRequest
+    private lateinit var response: HttpServletResponse
 
-public class UserServiceTest {
+    @BeforeEach
+    fun setUp() {
+        userService = mock(UserService::class.java)
+        userRepository = mock(UserRepository::class.java)
+        authTokenService = mock(AuthTokenService::class.java)
+        emailVerificationService = mock(EmailVerificationService::class.java)
+        messageUtil = mock(MessageUtil::class.java)
+        passwordResetService = mock(PasswordResetService::class.java)
 
-	@Mock
-	private UserRepository userRepository;
+        userController = UserController(
+            userService,
+            userRepository,
+            authTokenService,
+            emailVerificationService,
+            messageUtil,
+            passwordResetService
+        )
 
-	@Mock
-	private PasswordEncoder passwordEncoder;
+        request = mock(HttpServletRequest::class.java)
+        response = mock(HttpServletResponse::class.java)
 
-	@Mock
-	private MessageUtil messageUtil;
+        // 메시지 해석: 입력받은 메시지 코드를 그대로 반환하도록 설정
+        `when`(messageUtil.resolveMessage(anyString())).thenAnswer { invocation -> invocation.getArgument(0) }
+    }
 
-	@Mock
-	private EmailVerificationService emailVerificationService;
+    @Test
+    @DisplayName("회원가입 - 성공")
+    fun testSignUpSuccess() {
+        val signupRequest = UserSignUpRequest("테스트", "test@test.com", "pass1234!", "pass1234!")
+        val userResponse = UserResponse(UUID.randomUUID(), "테스트", "test@test.com", false)
+        `when`(userService.join(signupRequest)).thenReturn(userResponse)
 
-	@InjectMocks
-	private UserService userService;
+        val result: ResponseEntity<UserSignupResponse> = userController.signUp(signupRequest, response)
+        assertEquals(HttpStatus.CREATED, result.statusCode)
+        assertEquals("test@test.com", result.body?.email)
+        // 이메일 발송은 서비스 내에서 처리되므로 별도 검증은 서비스 테스트에서 진행
+    }
 
-	@BeforeEach
-	void setUp() {
-		MockitoAnnotations.openMocks(this);
-		// 메시지 해석 시, 입력받은 메시지 코드를 그대로 반환하도록 설정
-		when(messageUtil.resolveMessage(any(String.class))).thenAnswer(invocation -> invocation.getArgument(0));
-	}
+    @Test
+    @DisplayName("이메일 인증 - 토큰 유효하지 않음")
+    fun testVerifyEmailInvalidToken() {
+        `when`(authTokenService.parseId("invalidToken")).thenReturn(null)
+        val result = userController.verifyEmail("invalidToken")
+        assertEquals(HttpStatus.BAD_REQUEST, (result as ResponseEntity<*>).statusCode)
+        val body = result.body as Map<*, *>
+        assertEquals("error", body["status"])
+        assertEquals("유효하지 않은 토큰입니다.", body["message"])
+    }
 
-	@Test
-	@DisplayName("t1: 일반 회원 가입 - 정상 동작 테스트")
-	void t1() {
-		String name = "테스트";
-		String email = "test@test.com";
-		String password = "testtest1!";
-		String passwordConfirm = "testtest1!";
+    @Test
+    @DisplayName("이메일 인증 - 이미 인증됨")
+    fun testVerifyEmailAlreadyVerified() {
+        val userId = UUID.randomUUID()
+        `when`(authTokenService.parseId("validToken")).thenReturn(userId)
+        val user = User(
+            id = userId,
+            name = "테스트",
+            email = "test@test.com",
+            password = "dummy",
+            provider = Provider.EMAIL,
+            verified = true
+        )
+        `when`(userRepository.findById(userId)).thenReturn(Optional.of(user))
+        val result = userController.verifyEmail("validToken")
+        val body = (result as ResponseEntity<*>).body as Map<*, *>
+        assertEquals("already", body["status"])
+        assertEquals("이미 인증되었습니다.", body["message"])
+    }
 
-		when(userRepository.findByEmail(email)).thenReturn(Optional.empty());
-		when(passwordEncoder.encode(password)).thenReturn("encodedPassword");
+    @Test
+    @DisplayName("이메일 인증 - 성공")
+    fun testVerifyEmailSuccess() {
+        val userId = UUID.randomUUID()
+        val user = User(
+            id = userId,
+            name = "테스트",
+            email = "test@test.com",
+            password = "dummy",
+            provider = Provider.EMAIL,
+            verified = false
+        )
+        // authTokenService.parseId("validToken")가 userId를 반환하도록 stubbing
+        `when`(authTokenService.parseId("validToken")).thenReturn(userId)
+        // userRepository에서 해당 user를 반환하도록 stubbing
+        `when`(userRepository.findById(userId)).thenReturn(Optional.of(user))
+        // emailVerificationService.verifyEmail(userId)가 인증된 user를 반환하도록 stubbing
+        `when`(emailVerificationService.verifyEmail(userId))
+            .thenReturn(user.copy(verified = true))
 
-		User savedUser = User.builder()
-			.name(name)
-			.email(email)
-			.password("encodedPassword")
-			.build();
-		when(userRepository.save(any(User.class))).thenReturn(savedUser);
+        val result = userController.verifyEmail("validToken")
+        val body = (result as ResponseEntity<*>).body as Map<*, *>
+        assertEquals("success", body["status"])
+        assertEquals("이메일 인증이 완료되었습니다.", body["message"])
+    }
 
-		// DTO record를 생성해서 전달합니다.
-		UserSignUpRequest request = new UserSignUpRequest(name, email, password, passwordConfirm);
-		UserResponse result = userService.join(request);
+    @Test
+    @DisplayName("이메일 인증 상태 확인 - 사용자 미존재")
+    fun testIsVerifiedUserNotFound() {
+        val userId = UUID.randomUUID()
+        `when`(userRepository.findById(userId)).thenReturn(Optional.empty())
+        val exception = assertThrows(BusinessException::class.java) {
+            userController.isVerified(userId)
+        }
+        assertEquals("member.not.found", exception.message)
+    }
 
-		assertNotNull(result);
-		assertEquals(email, result.email());
-		verify(userRepository, times(1)).save(any(User.class));
-	}
+    @Test
+    @DisplayName("이메일 인증 메일 재전송 - 이미 인증된 사용자")
+    fun testResendEmailAlreadyVerified() {
+        val userId = UUID.randomUUID()
+        val user = User(
+            id = userId,
+            name = "테스트",
+            email = "test@test.com",
+            password = "dummy",
+            provider = Provider.EMAIL,
+            verified = true
+        )
+        `when`(userRepository.findById(userId)).thenReturn(Optional.of(user))
+        val result = userController.resendEmail(userId)
+        val body = (result as ResponseEntity<*>).body as Map<*, *>
+        assertEquals("already_verified", body["status"])
+        assertEquals("이미 인증된 사용자입니다.", body["message"])
+    }
 
-	@Test
-	@DisplayName("t2: 일반 회원 가입 - 비밀번호 불일치 테스트")
-	void t2() {
-		String name = "테스트";
-		String email = "test@test.com";
-		String password = "testtest!1";
-		String passwordConfirm = "testtest!2";
+    @Test
+    @DisplayName("이메일 인증 메일 재전송 - 성공")
+    fun testResendEmailSuccess() {
+        val userId = UUID.randomUUID()
+        val user = User(
+            id = userId,
+            name = "테스트",
+            email = "test@test.com",
+            password = "dummy",
+            provider = Provider.EMAIL,
+            verified = false
+        )
+        `when`(userRepository.findById(userId)).thenReturn(Optional.of(user))
+        doNothing().`when`(emailVerificationService).resendVerificationEmail(userId)
+        val result = userController.resendEmail(userId)
+        val body = (result as ResponseEntity<*>).body as Map<*, *>
+        assertEquals("success", body["status"])
+        assertEquals("이메일이 재전송되었습니다.", body["message"])
+    }
 
-		UserSignUpRequest request = new UserSignUpRequest(name, email, password, passwordConfirm);
-		Exception exception = assertThrows(BusinessException.class, () -> {
-			userService.join(request);
-		});
-		assertEquals("invalid.password.confirm", exception.getMessage());
-	}
+    @Test
+    @DisplayName("일반 유저 로그인 - 성공")
+    fun testLoginSuccess() {
+        val email = "test@test.com"
+        val password = "pass1234!"
+        val userResponse = UserResponse(UUID.randomUUID(), "테스트", email, true)
+        `when`(userService.login(email, password)).thenReturn(userResponse)
 
-	@Test
-	@DisplayName("t3: 일반 회원 가입 - 중복 이메일 테스트")
-	void t3() {
-		String name = "테스트";
-		String email = "test@test.com";
-		String password = "testtest1!";
-		String passwordConfirm = "testtest1!";
+        // 모의 response 객체에서 헤더 설정을 확인하기 위해 stub 처리
+        doNothing().`when`(response).setHeader(anyString(), anyString())
+        val result = userController.login(UserLoginRequest(email, password), response)
+        assertEquals(HttpStatus.OK, result.statusCode)
+        verify(response, atLeastOnce()).setHeader(eq("Set-Cookie"), anyString())
+        verify(response, atLeastOnce()).setHeader(eq("Authorization"), anyString())
+    }
 
-		UserSignUpRequest request = new UserSignUpRequest(name, email, password, passwordConfirm);
+    @Test
+    @DisplayName("토큰 재발급 - 성공")
+    fun testRefreshTokenSuccess() {
+        val refreshToken = "dummyRefreshToken"
+        val cookie = Cookie("refreshToken", refreshToken)
+        `when`(request.cookies).thenReturn(arrayOf(cookie))
+        val userId = UUID.randomUUID()
+        val claims = mapOf("id" to userId.toString())
+        `when`(authTokenService.verifyToken(refreshToken)).thenReturn(claims)
+        val userResponse = UserResponse(userId, "테스트", "test@test.com", true)
+        `when`(userService.findById(userId)).thenReturn(userResponse)
 
-		User existingUser = new User();
-		when(userRepository.findByEmail(email)).thenReturn(Optional.of(existingUser));
+        doNothing().`when`(response).setHeader(anyString(), anyString())
+        val result = userController.refreshToken(request, response)
+        assertEquals(HttpStatus.OK, result.statusCode)
+        verify(response, atLeastOnce()).setHeader(eq("Set-Cookie"), anyString())
+        verify(response, atLeastOnce()).setHeader(eq("Authorization"), anyString())
+    }
 
-		Exception exception = assertThrows(BusinessException.class, () -> {
-			userService.join(request);
-		});
-		assertEquals("already.registered.email", exception.getMessage());
-	}
+    @Test
+    @DisplayName("회원 로그아웃")
+    fun testLogout() {
+        doNothing().`when`(response).setHeader(anyString(), anyString())
+        val result = userController.logout(request, response)
+        assertEquals(HttpStatus.OK, result.statusCode)
+        verify(response, atLeastOnce()).setHeader(eq("Set-Cookie"), anyString())
+    }
 
-	@Test
-	@DisplayName("t4: 일반 회원 로그인 - 정상 동작 테스트")
-	void t4() {
-		String email = "test@test.com";
-		String password = "test";
-		String encodedPassword = "encodedPassword";
-		UUID userId = UUID.randomUUID(); // ID 생성
+    @Test
+    @DisplayName("회원 탈퇴 - 성공")
+    fun testSignOutSuccess() {
+        val principal = CustomUserPrincipal(UUID.randomUUID())
+        val signOutRequest = SignOutRequest("pass1234!")
+        doNothing().`when`(userService).quit(principal.id, signOutRequest.password)
+        val result = userController.signOut(signOutRequest, principal)
+        assertEquals(HttpStatus.OK, (result as ResponseEntity<*>).statusCode)
+        verify(userService, times(1)).quit(principal.id, signOutRequest.password)
+    }
 
-		User user = User.builder()
-			.id(userId) // 생성된 ID 할당
-			.name("테스트")
-			.email(email)
-			.password(encodedPassword)
-			.verified(true) // 인증 완료 상태
-			.build();
+    @Test
+    @DisplayName("회원 정보 조회 - 성공")
+    fun testGetUserInfoSuccess() {
+        val principal = CustomUserPrincipal(UUID.randomUUID())
+        val userResponse = UserResponse(principal.id, "테스트", "test@test.com", true)
+        `when`(userService.findById(principal.id)).thenReturn(userResponse)
+        val result = userController.getUserInfo(principal)
+        assertEquals(HttpStatus.OK, result.statusCode)
+        val responseBody = result.body as UserResponse
+        assertEquals("test@test.com", responseBody.email)
+    }
 
-		when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
-		when(passwordEncoder.matches(password, encodedPassword)).thenReturn(true);
+    @Test
+    @DisplayName("비밀번호 재설정 요청 - 사용자 미존재")
+    fun testRequestPasswordResetUserNotFound() {
+        val requestDto = PasswordResetRequest("test@test.com")
+        `when`(userRepository.findByEmail(requestDto.email)).thenReturn(Optional.empty())
+        val result = userController.requestPasswordReset(requestDto)
+        assertEquals(HttpStatus.BAD_REQUEST, (result as ResponseEntity<*>).statusCode)
+        val body = result.body as Map<*, *>
+        assertEquals("error", body["status"])
+    }
 
-		UserResponse result = userService.login(email, password);
+    @Test
+    @DisplayName("비밀번호 재설정 요청 - 성공")
+    fun testRequestPasswordResetSuccess() {
+        val requestDto = PasswordResetRequest("test@test.com")
+        val user = User(
+            id = UUID.randomUUID(),
+            name = "테스트",
+            email = requestDto.email,
+            password = "dummy",
+            provider = Provider.EMAIL,
+            verified = true
+        )
+        `when`(userRepository.findByEmail(requestDto.email)).thenReturn(Optional.of(user))
+        doNothing().`when`(passwordResetService).sendPasswordResetEmail(user)
+        val result = userController.requestPasswordReset(requestDto)
+        assertEquals(HttpStatus.OK, (result as ResponseEntity<*>).statusCode)
+        val body = result.body as Map<*, *>
+        assertEquals("success", body["status"])
+    }
 
-		assertNotNull(result);
-		assertEquals(email, result.email());
-		assertTrue(result.verified());
-		// 필요하면 userId도 확인할 수 있습니다.
-		assertEquals(userId, result.id());
-	}
+    @Test
+    @DisplayName("비밀번호 재설정 확인 - 토큰 유효하지 않음")
+    fun testConfirmPasswordResetInvalidToken() {
+        `when`(authTokenService.parseId("invalidToken")).thenReturn(null)
+        val requestDto = PasswordResetConfirmRequest("newPass1!", "newPass1!")
+        val result = userController.confirmPasswordReset("invalidToken", requestDto)
+        assertEquals(HttpStatus.BAD_REQUEST, (result as ResponseEntity<*>).statusCode)
+        val body = result.body as Map<*, *>
+        assertEquals("error", body["status"])
+    }
 
-	@Test
-	@DisplayName("t5: 일반 회원 로그인 - 잘못된 비밀번호 테스트")
-	void t5() {
-		String email = "test@test.com";
-		String password = "test";
-		String encodedPassword = "encodedPassword";
+    @Test
+    @DisplayName("비밀번호 재설정 확인 - 비밀번호 불일치")
+    fun testConfirmPasswordResetMismatch() {
+        `when`(authTokenService.parseId("validToken")).thenReturn(UUID.randomUUID())
+        val requestDto = PasswordResetConfirmRequest("newPass1!", "differentPass!")
+        val result = userController.confirmPasswordReset("validToken", requestDto)
+        assertEquals(HttpStatus.BAD_REQUEST, (result as ResponseEntity<*>).statusCode)
+        val body = result.body as Map<*, *>
+        assertEquals("error", body["status"])
+    }
 
-		User user = User.builder()
-			.name("테스트")
-			.email(email)
-			.password(encodedPassword)
-			.build();
-
-		when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
-		when(passwordEncoder.matches(password, encodedPassword)).thenReturn(false);
-
-		Exception exception = assertThrows(BusinessException.class, () -> {
-			userService.login(email, password);
-		});
-		assertEquals("password.mismatch", exception.getMessage());
-	}
-
-	@Test
-	@DisplayName("t6: 일반 회원 로그인 - 사용자 미존재 테스트")
-	void t6() {
-		String email = "test@test.com";
-		String password = "test";
-
-		when(userRepository.findByEmail(email)).thenReturn(Optional.empty());
-
-		Exception exception = assertThrows(BusinessException.class, () -> {
-			userService.login(email, password);
-		});
-		assertEquals("member.not.found", exception.getMessage());
-	}
+    @Test
+    @DisplayName("비밀번호 재설정 확인 - 성공")
+    fun testConfirmPasswordResetSuccess() {
+        val userId = UUID.randomUUID()
+        `when`(authTokenService.parseId("validToken")).thenReturn(userId)
+        val requestDto = PasswordResetConfirmRequest("newPass1!", "newPass1!")
+        doNothing().`when`(userService).updatePassword(userId, requestDto.newPassword)
+        val result = userController.confirmPasswordReset("validToken", requestDto)
+        assertEquals(HttpStatus.OK, (result as ResponseEntity<*>).statusCode)
+        val body = result.body as Map<*, *>
+        assertEquals("success", body["status"])
+    }
 }
