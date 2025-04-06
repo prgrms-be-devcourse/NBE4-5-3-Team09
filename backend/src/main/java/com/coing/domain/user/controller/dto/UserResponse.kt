@@ -1,8 +1,10 @@
 package com.coing.domain.user.controller.dto
 
 import com.coing.domain.user.entity.User
+import com.coing.global.annotation.NoArg
 import java.util.UUID
 
+@NoArg
 data class UserResponse(
     val id: UUID,
     val name: String,

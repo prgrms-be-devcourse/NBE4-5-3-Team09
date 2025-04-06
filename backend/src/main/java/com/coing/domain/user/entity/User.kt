@@ -1,5 +1,6 @@
 package com.coing.domain.user.entity
 
+import com.coing.global.annotation.NoArg
 import com.coing.util.BaseEntity
 import jakarta.persistence.*
 import org.hibernate.annotations.UuidGenerator
@@ -7,6 +8,7 @@ import java.util.UUID
 
 @Entity
 @Table(name = "member")
+@NoArg
 data class User(
     @Id
     @GeneratedValue

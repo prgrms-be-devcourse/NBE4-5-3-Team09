@@ -2,8 +2,15 @@ plugins {
     java
     kotlin("jvm") version "1.9.25"
     kotlin("plugin.spring") version "1.9.25"
+    kotlin("plugin.allopen") version "1.9.25"
+    kotlin("plugin.noarg") version "1.9.25"
     id("org.springframework.boot") version "3.4.3"
     id("io.spring.dependency-management") version "1.1.7"
+}
+
+
+noArg {
+    annotation("com.coing.global.annotation.NoArg")
 }
 
 group = "com"
@@ -59,6 +66,7 @@ dependencies {
     implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.18.3")
     implementation(kotlin("stdlib"))
     implementation ("org.jetbrains.kotlin:kotlin-reflect")
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
 }
 
 tasks.named<Test>("test") {

@@ -1,10 +1,12 @@
 package com.coing.domain.user.controller.dto
 
+import com.coing.global.annotation.NoArg
 import jakarta.validation.constraints.Email
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.Pattern
 import jakarta.validation.constraints.Size
 
+@NoArg
 data class UserSignUpRequest(
     @field:NotBlank(message = "{name.required}")
     @field:Size(min = 2, max = 20, message = "{invalid.name.length}")
