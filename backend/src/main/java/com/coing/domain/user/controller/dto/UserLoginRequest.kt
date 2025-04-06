@@ -1,13 +1,13 @@
-package com.coing.domain.user.controller.dto;
+package com.coing.domain.user.controller.dto
 
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Email
+import jakarta.validation.constraints.NotBlank
 
-public record UserLoginRequest(
-	@NotBlank(message = "{email.required}")
+data class UserLoginRequest(
+    @field:NotBlank(message = "{email.required}")
+    @field:Email(message = "{invalid.email.format}")
+    val email: String,
 
-	@Email(message = "{invalid.email.format}") String email,
-
-	@NotBlank(message = "{password.required}") String password
-) {
-}
+    @field:NotBlank(message = "{password.required}")
+    val password: String
+)

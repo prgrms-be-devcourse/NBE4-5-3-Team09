@@ -58,6 +58,7 @@ dependencies {
     implementation("com.github.ben-manes.caffeine:caffeine:3.1.8")
     implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.18.3")
     implementation(kotlin("stdlib"))
+    implementation ("org.jetbrains.kotlin:kotlin-reflect")
 }
 
 tasks.named<Test>("test") {

@@ -1,4 +1,5 @@
-package com.coing.domain.user.controller.dto;
+package com.coing.domain.user.controller.dto
 
-public record PasswordResetRequest(String email) {
-}
+data class PasswordResetRequest(
+    val email: String
+)

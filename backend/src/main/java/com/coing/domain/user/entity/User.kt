@@ -15,7 +15,7 @@ data class User(
     val id: UUID? = null,
 
     @Column(name = "user_name", nullable = false)
-    val name: String,
+    val name: String = "",
 
     // 이메일
     @Column(name = "email", nullable = false, unique = true)

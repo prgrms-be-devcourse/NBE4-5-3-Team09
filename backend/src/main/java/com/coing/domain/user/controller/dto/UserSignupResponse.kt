@@ -1,6 +1,10 @@
-package com.coing.domain.user.controller.dto;
+package com.coing.domain.user.controller.dto
 
-import java.util.UUID;
+import java.util.UUID
 
-public record UserSignupResponse(String message, String name, String email, UUID userId) {
-}
+data class UserSignupResponse(
+    val message: String,
+    val name: String,
+    val email: String,
+    val userId: UUID
+)

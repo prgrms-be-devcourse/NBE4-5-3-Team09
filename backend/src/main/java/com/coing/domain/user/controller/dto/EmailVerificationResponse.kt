@@ -1,4 +1,5 @@
-package com.coing.domain.user.controller.dto;
+package com.coing.domain.user.controller.dto
 
-public record EmailVerificationResponse(boolean verified) {
-}
+data class EmailVerificationResponse(
+    val verified: Boolean
+)
