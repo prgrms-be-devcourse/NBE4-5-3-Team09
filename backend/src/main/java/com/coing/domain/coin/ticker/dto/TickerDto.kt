@@ -12,8 +12,8 @@ import java.time.LocalTime
 data class TickerDto(
     val type: String,             // 데이터 타입 (예: "ticker")
     val code: String,             // 마켓 코드 (예: "KRW-BTC")
-//    val koreanName: String,       // 한글 이름
-//    val englishName: String,      // 영어 이름
+    val koreanName: String,       // 한글 이름
+    val englishName: String,      // 영어 이름
     val openingPrice: Double,     // 시가
     val highPrice: Double,        // 고가
     val lowPrice: Double,         // 저가
@@ -54,8 +54,8 @@ data class TickerDto(
             return TickerDto(
                 type = ticker.type,
                 code = ticker.code,
-//                koreanName = market.koreanName,
-//                englishName = market.englishName,
+                koreanName = market.koreanName,
+                englishName = market.englishName,
                 openingPrice = ticker.openingPrice,
                 highPrice = ticker.highPrice,
                 lowPrice = ticker.lowPrice,

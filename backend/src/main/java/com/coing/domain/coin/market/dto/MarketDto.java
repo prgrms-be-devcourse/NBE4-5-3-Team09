@@ -12,10 +12,10 @@ public record MarketDto(
 	String englishName
 ) {
 	public Market toEntity() {
-		return Market.builder()
-			.code(market)
-			.koreanName(koreanName)
-			.englishName(englishName)
-			.build();
+		return new Market(
+			market,
+			koreanName,
+			englishName
+		);
 	}
 }
