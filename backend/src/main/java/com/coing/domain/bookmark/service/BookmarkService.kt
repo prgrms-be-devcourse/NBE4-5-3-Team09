@@ -31,7 +31,7 @@ class BookmarkService(
             throw BusinessException(messageUtil.resolveMessage("member.not.found"), HttpStatus.NOT_FOUND)
         }
 
-        val userId = principal.id()
+        val userId = principal.id
         val coinCode = request.coinCode
 
         // 북마크가 이미 존재하는지 확인
@@ -65,7 +65,7 @@ class BookmarkService(
             throw BusinessException(messageUtil.resolveMessage("member.not.found"), HttpStatus.NOT_FOUND)
         }
 
-        val userId = principal.id()
+        val userId = principal.id
         val bookmarks = bookmarkRepository.findByUserIdAndQuote(userId, quote)
 
         val responses = bookmarks.map { BookmarkResponse.of(it) }
