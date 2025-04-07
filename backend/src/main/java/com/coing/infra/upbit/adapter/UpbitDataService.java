@@ -37,6 +37,7 @@ public class UpbitDataService {
 		try {
 			// double oneMinuteRate = tickerService.calculateOneMinuteRate(dto.getCode(), dto.getTradePrice());
 			Ticker ticker = dto.toEntity();
+			if(ticker == null) return;
 			tickerService.updateTicker(ticker);
 		} catch (RuntimeException e) {
 			log.error("failed to fetch ticker data : {}", e.getMessage());
