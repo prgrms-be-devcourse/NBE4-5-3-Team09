@@ -5,10 +5,11 @@ import com.coing.domain.user.repository.UserRepository
 import com.coing.global.exception.BusinessException
 import com.coing.util.MessageUtil
 import com.coing.util.Ut
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.HttpStatus
-import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.util.UUID
@@ -28,9 +29,8 @@ class EmailVerificationService(
     /**
      * 회원가입 후, 이메일 인증 토큰을 생성하여 이메일 전송하고 DB 업데이트
      */
-    @Async
     @Transactional
-    fun sendVerificationEmail(user: User) {
+    suspend fun sendVerificationEmail(user: User) = withContext(Dispatchers.IO) {
         // 이메일 인증 토큰 생성 (JWT 기반, 만료 10분)
         val token = user.id?.let { Ut.AuthTokenUtil.createEmailVerificationToken(jwtSecretKey, it) }
         try {
@@ -61,10 +61,9 @@ class EmailVerificationService(
         return userRepository.save(verifiedUser)
     }
 
-    // 이메일 재전송
-    @Async
+    // 이메일 재전송 (코루틴 기반)
     @Transactional
-    fun resendVerificationEmail(userId: UUID) {
+    suspend fun resendVerificationEmail(userId: UUID) = withContext(Dispatchers.IO) {
         val user = userRepository.findById(userId).orElseThrow {
             BusinessException(messageUtil.resolveMessage("user.not.found"), HttpStatus.BAD_REQUEST, "")
         }
