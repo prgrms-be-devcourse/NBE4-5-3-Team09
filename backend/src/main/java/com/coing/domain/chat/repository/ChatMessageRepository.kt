@@ -1,11 +1,8 @@
-package com.coing.domain.chat.repository;
+package com.coing.domain.chat.repository
 
-import java.util.List;
+import com.coing.domain.chat.entity.ChatMessage
+import org.springframework.data.jpa.repository.JpaRepository
 
-import org.springframework.data.jpa.repository.JpaRepository;
-
-import com.coing.domain.chat.entity.ChatMessage;
-
-public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> {
-	List<ChatMessage> findByChatRoomIdOrderByTimestampAsc(Long chatRoomId);
+interface ChatMessageRepository : JpaRepository<ChatMessage, Long> {
+    fun findByChatRoomIdOrderByTimestampAsc(chatRoomId: Long): List<ChatMessage>
 }
