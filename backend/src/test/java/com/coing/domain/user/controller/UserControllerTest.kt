@@ -28,8 +28,10 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.test.context.support.WithMockUser
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.*
 import org.springframework.test.web.servlet.MockMvc
+import org.springframework.test.web.servlet.post
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.*
+import org.springframework.web.servlet.function.RequestPredicates.param
 import java.util.*
 
 @SpringBootTest(classes = [CoingApplication::class], webEnvironment = WebEnvironment.RANDOM_PORT)
@@ -255,10 +257,60 @@ class UserControllerIntegrationTest {
             .andExpect(jsonPath("$.message", `is`("비밀번호가 재설정되었습니다.")))
     }
 
-    // 리다이렉트 엔드포인트 통합 테스트
+
+    // 소셜 로그인 토큰 발급 - 성공 케이스
     @Test
-    fun `리다이렉트`() {
-        mockMvc.perform(get("/api/auth"))
-            .andExpect(status().isOk)
+    fun `소셜 로그인 토큰 발급 - 성공`() {
+        val tempToken = "validTemp"
+        // 실제 컨트롤러에서는 "tempToken:" 접두사를 붙임
+        val token = "tempToken:$tempToken"
+        val userId = UUID.randomUUID()
+        val userIdStr = userId.toString()
+
+        // tempToken을 이용해 userId를 얻는다.
+        given(authTokenService.getUserIdWithTempToken(token)).willReturn(userIdStr)
+
+        // userId로 사용자 정보를 조회
+        val userResponse = UserResponse(
+            id = userId,
+            name = "테스트",
+            email = "test@example.com",
+            verified = true
+        )
+        given(userService.findById(userId)).willReturn(userResponse)
+
+        // 요청 수행
+        mockMvc.post("/api/auth/social-login/redirect") {
+            param("tempToken", tempToken)
+            contentType = MediaType.APPLICATION_JSON
+        }
+            .andExpect {
+                status { isOk() }
+                jsonPath("$.status", `is`("success"))
+                jsonPath("$.message", `is`("소셜 로그인 성공"))
+            }
+
+        // 토큰 제거 메서드가 호출되었는지 검증
+        verify(authTokenService, times(1)).removeTempToken(token)
+    }
+
+    // 소셜 로그인 토큰 발급 - 실패 (잘못된 토큰)
+    @Test
+    fun `소셜 로그인 토큰 발급 - 실패 invalid token`() {
+        val tempToken = "invalidTemp"
+        val token = "tempToken:$tempToken"
+        // 잘못된 토큰일 경우 userId를 반환하지 않음
+        given(authTokenService.getUserIdWithTempToken(token)).willReturn(null)
+
+        mockMvc.post("/api/auth/social-login/redirect") {
+            param("tempToken", tempToken)
+            contentType = MediaType.APPLICATION_JSON
+        }
+            .andExpect {
+                status { isForbidden() }
+                jsonPath("$.status", `is`("error"))
+                jsonPath("$.message", `is`("유효하지 않은 토큰입니다."))
+            }
     }
 }
+
