@@ -9,7 +9,6 @@ import com.coing.domain.coin.ticker.entity.Ticker
 import com.coing.domain.coin.ticker.entity.enums.MarketState
 import com.coing.domain.coin.ticker.entity.enums.MarketWarning
 import com.coing.global.exception.BusinessException
-import com.coing.infra.upbit.dto.UpbitApiTradeDto
 import com.coing.util.MessageUtil
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -23,7 +22,6 @@ import org.mockito.Mock
 import org.mockito.Mockito.*
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.http.HttpStatus
 import org.springframework.messaging.simp.SimpMessageSendingOperations
 import org.springframework.web.client.RestTemplate
 import java.lang.reflect.Field
@@ -94,11 +92,11 @@ class TickerServiceTest {
             lowBreakout = false
         )
 
-        testMarket = Market.builder()
-            .code("KRW-BTC")
-            .koreanName("비트코인")
-            .englishName("Bitcoin")
-            .build()
+        testMarket = Market(
+            code = "KRW-BTC",
+            koreanName = "비트코인",
+            englishName = "Bitcoin"
+        )
     }
 
     @Test
