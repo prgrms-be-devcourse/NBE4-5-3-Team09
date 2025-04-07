@@ -26,10 +26,12 @@ class UpbitWebSocketService(
     private val orderbookHandler: UpbitWebSocketOrderbookHandler,
     private val tickerHandler: UpbitWebSocketTickerHandler,
     private val tradeHandler: UpbitWebSocketTradeHandler,
-    @Value("\${upbit.websocket.uri}")
-    private val upbitWebSocketUri: String
 ) {
     private val connections: MutableMap<EnumUpbitWebSocketType, UpbitWebSocketConnection> = HashMap()
+
+    @Value("\${upbit.websocket.uri}")
+    private lateinit var upbitWebSocketUri: String
+
     private val log = LoggerFactory.getLogger(UpbitWebSocketService::class.java)
 
     /**

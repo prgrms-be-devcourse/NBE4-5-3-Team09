@@ -48,7 +48,7 @@ class UpbitWebSocketOrderbookHandler(
      * @param message
      * @throws Exception
      */
-    override fun handleBinaryMessage(session: WebSocketSession, message: BinaryMessage) {
+    public override fun handleBinaryMessage(session: WebSocketSession, message: BinaryMessage) {
         val payload = String(message.payload.array(), StandardCharsets.UTF_8)
         if (payload.isNotEmpty()) processMessage(payload)
     }
