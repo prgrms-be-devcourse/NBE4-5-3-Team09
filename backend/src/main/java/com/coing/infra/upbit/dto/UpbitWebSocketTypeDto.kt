@@ -18,8 +18,8 @@ data class UpbitWebSocketTypeDto (
     private val codes: List<String>,
 
     @JsonProperty("is_only_snapshot")
-    private val isOnlySnapshot: Boolean? = null,
+    private val isOnlySnapshot: Boolean = false,
 
     @JsonProperty("is_only_realtime")
-    private val isOnlyRealtime: Boolean? = null
+    private val isOnlyRealtime: Boolean = false
 )
