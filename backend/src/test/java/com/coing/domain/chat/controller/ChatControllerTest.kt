@@ -18,7 +18,6 @@ import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
-import java.time.LocalDateTime
 
 @SpringBootTest(classes = [CoingApplication::class])
 @AutoConfigureMockMvc
@@ -42,8 +41,7 @@ class ChatControllerIntegrationTest @Autowired constructor(
         // 영속화된 Market을 이용하여 채팅방 생성
         testChatRoom = ChatRoom(
             market = savedMarket,
-            name = "테스트 채팅방",
-            createdAt = LocalDateTime.now()
+            name = "테스트 채팅방"
         )
         testChatRoom = chatRoomRepository.save(testChatRoom)
 

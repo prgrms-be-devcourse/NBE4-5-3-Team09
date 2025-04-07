@@ -16,9 +16,9 @@ import org.hamcrest.Matchers.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.mockito.BDDMockito.given
+import org.mockito.Mockito
 import org.mockito.Mockito.*
 import org.mockito.kotlin.any
-import org.mockito.kotlin.whenever
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
@@ -30,10 +30,8 @@ import org.springframework.security.test.context.support.WithMockUser
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.*
 import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.test.web.servlet.MockMvc
-import org.springframework.test.web.servlet.post
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.*
-import org.springframework.web.servlet.function.RequestPredicates.param
 import java.util.*
 
 @SpringBootTest(classes = [CoingApplication::class], webEnvironment = WebEnvironment.RANDOM_PORT)
@@ -273,7 +271,7 @@ class UserControllerIntegrationTest {
         val tempToken = "invalid-token"
         val tokenKey = "tempToken:$tempToken"
 
-        whenever(authTokenService.getUserIdWithTempToken(tokenKey)).thenReturn(null)
+        `when`(authTokenService.getUserIdWithTempToken(tokenKey)).thenReturn(null)
 
         mockMvc.perform(
             post("/api/auth/social-login/redirect")
@@ -283,15 +281,16 @@ class UserControllerIntegrationTest {
             .andExpect(jsonPath("$.message").value("유효하지 않은 토큰입니다."))
     }
 
+
     @Test
     fun `redirectSocialLogin - ok`() {
         val tempToken = "valid-token"
         val tokenKey = "tempToken:$tempToken"
         val userId = UUID.randomUUID()
-        val userResponse = mock(UserResponse::class.java)
+        val userResponse = Mockito.mock(UserResponse::class.java)
 
-        whenever(authTokenService.getUserIdWithTempToken(tokenKey)).thenReturn(userId.toString())
-        whenever(userService.findById(userId)).thenReturn(userResponse)
+        `when`(authTokenService.getUserIdWithTempToken(tokenKey)).thenReturn(userId.toString())
+        `when`(userService.findById(userId)).thenReturn(userResponse)
         doNothing().`when`(authTokenService).removeTempToken(tokenKey)
 
         mockMvc.perform(

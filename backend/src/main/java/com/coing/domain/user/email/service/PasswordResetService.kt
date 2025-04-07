@@ -25,7 +25,7 @@ class PasswordResetService(
     @Transactional
     fun sendPasswordResetEmail(user: User) {
         // JWT 토큰 생성 (만료: 1시간 = 3600초)
-        val claims = mapOf("id" to user.id)
+        val claims = mapOf("id" to (user.id ?: throw BusinessException(messageUtil.resolveMessage("user.not.found"), HttpStatus.BAD_REQUEST, "")))
         val token = Ut.Jwt.createToken(jwtSecretKey, 3600, claims)
         try {
             emailSenderService.sendPasswordResetEmailMessage(user.email, token)

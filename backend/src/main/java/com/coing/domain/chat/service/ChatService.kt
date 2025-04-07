@@ -34,8 +34,7 @@ class ChatService(
             // 새로운 ChatRoom 인스턴스 생성 (builder 없이 생성자 호출)
             val chatRoom = ChatRoom(
                 market = market,
-                name = "${market.koreanName} 채팅방",
-                createdAt = LocalDateTime.now()
+                name = "${market.koreanName} 채팅방"
             )
             chatRoomRepository.save(chatRoom)
         }
