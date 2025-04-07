@@ -13,6 +13,7 @@ import com.coing.domain.user.email.service.PasswordResetService
 import com.coing.util.MessageUtil
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.hamcrest.Matchers.*
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.mockito.BDDMockito.given
 import org.mockito.Mockito.*
@@ -62,6 +63,14 @@ class UserControllerIntegrationTest {
 
     @MockBean
     lateinit var passwordResetService: PasswordResetService
+
+    @BeforeEach
+    fun setup() {
+        given(messageUtil.resolveMessage("refresh.token.required"))
+            .willReturn("리프레시 토큰이 제공되지 않았습니다.")
+        given(messageUtil.resolveMessage("invalid.refresh.token"))
+            .willReturn("유효하지 않은 리프레시 토큰입니다.")
+    }
 
     // 회원가입 통합 테스트
     @Test

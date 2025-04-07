@@ -1,13 +1,11 @@
-package com.coing.global.exception.doc;
+package com.coing.global.exception.doc
 
-import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatus
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-
-@Getter
-@AllArgsConstructor
-public enum ErrorCode {
+enum class ErrorCode(
+	val status: HttpStatus,
+	val messageKey: String
+) {
 	// Common
 	INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "internal.server.error"),
 
@@ -53,8 +51,5 @@ public enum ErrorCode {
 	TRADE_NOT_FOUND(HttpStatus.NOT_FOUND, "trade.not.found"),
 
 	// Ticker
-	TICKER_NOT_FOUND(HttpStatus.NOT_FOUND, "ticker.not.found");
-
-	private final HttpStatus status;
-	private final String messageKey;
+	TICKER_NOT_FOUND(HttpStatus.NOT_FOUND, "ticker.not.found")
 }
