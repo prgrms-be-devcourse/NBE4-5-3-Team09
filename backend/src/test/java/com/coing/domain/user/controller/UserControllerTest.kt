@@ -17,6 +17,7 @@ import org.junit.jupiter.api.Test
 import org.mockito.BDDMockito.given
 import org.mockito.Mockito.*
 import org.mockito.kotlin.any
+import org.mockito.kotlin.whenever
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
@@ -255,10 +256,37 @@ class UserControllerIntegrationTest {
             .andExpect(jsonPath("$.message", `is`("비밀번호가 재설정되었습니다.")))
     }
 
-    // 리다이렉트 엔드포인트 통합 테스트
     @Test
-    fun `리다이렉트`() {
-        mockMvc.perform(get("/api/auth"))
-            .andExpect(status().isOk)
+    fun `redirectSocialLogin - forbidden`() {
+        val tempToken = "invalid-token"
+        val tokenKey = "tempToken:$tempToken"
+
+        whenever(authTokenService.getUserIdWithTempToken(tokenKey)).thenReturn(null)
+
+        mockMvc.perform(
+            post("/api/auth/social-login/redirect")
+                .param("tempToken", tempToken)
+        ).andExpect(status().isForbidden)
+            .andExpect(jsonPath("$.status").value("error"))
+            .andExpect(jsonPath("$.message").value("유효하지 않은 토큰입니다."))
+    }
+
+    @Test
+    fun `redirectSocialLogin - ok`() {
+        val tempToken = "valid-token"
+        val tokenKey = "tempToken:$tempToken"
+        val userId = UUID.randomUUID()
+        val userResponse = mock(UserResponse::class.java)
+
+        whenever(authTokenService.getUserIdWithTempToken(tokenKey)).thenReturn(userId.toString())
+        whenever(userService.findById(userId)).thenReturn(userResponse)
+        doNothing().`when`(authTokenService).removeTempToken(tokenKey)
+
+        mockMvc.perform(
+            post("/api/auth/social-login/redirect")
+                .param("tempToken", tempToken)
+        ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.status").value("success"))
+            .andExpect(jsonPath("$.message").value("소셜 로그인 성공"))
     }
 }
