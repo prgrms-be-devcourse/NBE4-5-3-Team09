@@ -1,4 +1,4 @@
-package com.coing.domain.chat.helper;
+package com.coing.domain.chat.service;
 
 import java.time.ZoneOffset;
 import java.util.Map;
