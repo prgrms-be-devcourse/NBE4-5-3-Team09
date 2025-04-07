@@ -5,6 +5,9 @@ import com.coing.domain.user.dto.CustomUserPrincipal
 import com.coing.util.Ut
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
+import org.springframework.cache.annotation.CacheEvict
+import org.springframework.cache.annotation.CachePut
+import org.springframework.cache.annotation.Cacheable
 import org.springframework.stereotype.Service
 import java.util.UUID
 
@@ -74,5 +77,19 @@ class AuthTokenService {
             return null
         }
         return UUID.fromString(claims["id"].toString())
+    }
+
+    @CachePut(cacheNames = ["tempTokens"], key = "#root.args[0]")
+    fun setTempToken(token: String, userId: String): String {
+        return userId
+    }
+
+    @Cacheable(cacheNames = ["tempTokens"], key = "#root.args[0]")
+    fun getUserIdWithTempToken(token: String): String? {
+        return null
+    }
+
+    @CacheEvict(cacheNames = ["tempTokens"], key = "#root.args[0]")
+    fun removeTempToken(token: String) {
     }
 }
