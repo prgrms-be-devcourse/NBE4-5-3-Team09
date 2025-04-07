@@ -69,11 +69,20 @@ class UserControllerIntegrationTest {
             .willReturn("리프레시 토큰이 제공되지 않았습니다.")
         given(messageUtil.resolveMessage("invalid.refresh.token"))
             .willReturn("유효하지 않은 리프레시 토큰입니다.")
+        given(messageUtil.resolveMessage("mail.send.fail"))
+            .willReturn("이메일 전송에 실패했습니다.")
+        given(messageUtil.resolveMessage("mail.send.fail"))
+            .willReturn("이메일 전송에 실패했습니다.")
+        given(messageUtil.resolveMessage("member.not.found"))
+            .willReturn("회원을 찾을 수 없습니다.")
+        given(messageUtil.resolveMessage("already.registered.email"))
+            .willReturn("이미 가입된 이메일입니다.")
     }
 
     // 회원가입 통합 테스트
     @Test
     fun `회원가입 - 성공`() = runBlocking {
+        val userId = UUID.randomUUID()
         val signUpRequest = UserSignUpRequest(
             name = "테스트",
             email = "integration@test.com",
@@ -81,13 +90,27 @@ class UserControllerIntegrationTest {
             passwordConfirm = "pass1234!"
         )
         val userResponse = UserResponse(
-            id = UUID.randomUUID(),
+            id = userId,
             name = "테스트",
             email = "integration@test.com",
             verified = false
         )
-        // suspend 함수인 join() 호출을 위해 runBlocking 내부에서 stubbing
+        val userEntity = User(
+            id = userId,
+            name = "테스트",
+            email = "integration@test.com",
+            password = "encodedPassword",
+            provider = Provider.EMAIL,
+            verified = false
+        )
+
+        // suspend 함수 Stub은 runBlocking 안에서
         given(userService.join(any())).willReturn(userResponse)
+        given(userRepository.findById(userId)).willReturn(Optional.of(userEntity))
+        given(messageUtil.resolveMessage("member.not.found")).willReturn("회원을 찾을 수 없습니다.")
+
+        // 이메일 전송은 백그라운드 코루틴에서 실행되므로 성공 처리
+        doNothing().`when`(emailVerificationService).sendVerificationEmail(userEntity)
 
         mockMvc.perform(
             post("/api/auth/signup")
@@ -98,7 +121,6 @@ class UserControllerIntegrationTest {
             .andExpect(jsonPath("$.email", `is`("integration@test.com")))
             .andExpect(jsonPath("$.userId", not(emptyString())))
     }
-
 
     // 이메일 인증 - 토큰 유효하지 않음 통합 테스트
     @Test
