@@ -37,7 +37,7 @@ internal class ChatServiceUnitTest {
     fun `채팅방이 존재하면 기존 채팅방 반환`() {
         val marketCode = "KRW-BTC"
         val market = Market(code = marketCode, koreanName = "비트코인", englishName = "Bitcoin")
-        val chatRoom = ChatRoom(id = 1L, market = market, name = "BTC Chat", createdAt = LocalDateTime.now())
+        val chatRoom = ChatRoom(id = 1L, market = market, name = "BTC Chat")
         whenever(chatRoomRepository.findByMarketCode(marketCode)).thenReturn(Optional.of(chatRoom))
 
         val result = chatService.getOrCreateChatRoomByMarketCode(marketCode)
@@ -51,7 +51,7 @@ internal class ChatServiceUnitTest {
         whenever(chatRoomRepository.findByMarketCode(marketCode)).thenReturn(Optional.empty())
         val market = Market(code = marketCode, koreanName = "이더리움", englishName = "Ethereum")
         whenever(marketService.getCachedMarketByCode(marketCode)).thenReturn(market)
-        val newChatRoom = ChatRoom(id = 2L, market = market, name = "채팅방", createdAt = LocalDateTime.now())
+        val newChatRoom = ChatRoom(id = 2L, market = market, name = "채팅방")
         whenever(chatRoomRepository.save(any())).thenReturn(newChatRoom)
 
         val result = chatService.getOrCreateChatRoomByMarketCode(marketCode)
@@ -72,7 +72,7 @@ internal class ChatServiceUnitTest {
         )
         val content = "Hello"
         val market = Market(code = "KRW-BTC", koreanName = "비트코인", englishName = "Bitcoin")
-        val chatRoom = ChatRoom(id = chatRoomId, market = market, name = "ChatRoom", createdAt = LocalDateTime.now())
+        val chatRoom = ChatRoom(id = chatRoomId, market = market, name = "ChatRoom")
         whenever(chatRoomRepository.findById(chatRoomId)).thenReturn(Optional.of(chatRoom))
         // 기존 캐시에 아무 메시지도 없다고 가정
         whenever(chatMessageCache.getIfPresent(chatRoomId)).thenReturn(null)

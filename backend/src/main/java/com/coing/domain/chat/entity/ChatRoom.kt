@@ -4,7 +4,6 @@ import com.coing.domain.coin.market.entity.Market
 import com.coing.global.annotation.NoArg
 import com.coing.util.BaseEntity
 import jakarta.persistence.*
-import java.time.LocalDateTime
 
 @Entity
 @Table(name = "chat_rooms")
@@ -23,6 +22,4 @@ open class ChatRoom(
     @Column(nullable = false)
     open var name: String = "",
 
-    // 채팅방 생성 시간
-    open var createdAt: LocalDateTime? = null
 ) : BaseEntity()

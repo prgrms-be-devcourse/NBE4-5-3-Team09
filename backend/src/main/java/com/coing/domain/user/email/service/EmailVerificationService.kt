@@ -32,9 +32,11 @@ class EmailVerificationService(
     @Transactional
     fun sendVerificationEmail(user: User) {
         // 이메일 인증 토큰 생성 (JWT 기반, 만료 10분)
-        val token = Ut.AuthTokenUtil.createEmailVerificationToken(jwtSecretKey, user.id)
+        val token = user.id?.let { Ut.AuthTokenUtil.createEmailVerificationToken(jwtSecretKey, it) }
         try {
-            emailSenderService.sendEmailVerificationMessage(user.email, token)
+            if (token != null) {
+                emailSenderService.sendEmailVerificationMessage(user.email, token)
+            }
             log.info("인증 이메일 전송 성공: {}", user.email)
         } catch (e: Exception) {
             log.error("인증 이메일 전송 에러: {}", user.email, e)
