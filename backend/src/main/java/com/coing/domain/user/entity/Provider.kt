@@ -1,5 +1,5 @@
-package com.coing.domain.user.entity;
+package com.coing.domain.user.entity
 
-public enum Provider {
-	EMAIL, KAKAO
+enum class Provider {
+    EMAIL, KAKAO
 }

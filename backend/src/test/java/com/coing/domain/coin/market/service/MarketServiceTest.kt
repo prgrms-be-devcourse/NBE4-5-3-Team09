@@ -75,7 +75,7 @@ class MarketServiceTest {
 	fun `getMarketByUserAndCode - ok`() {
 		val principal = mock(CustomUserPrincipal::class.java)
 		val id = UUID.randomUUID()
-		`when`(principal.id()).thenReturn(id)
+		`when`(principal.id).thenReturn(id)
 		`when`(bookmarkRepository.existsByUserIdAndMarketCode(id, "KRW-BTC")).thenReturn(true)
 		`when`(marketCacheService.getCachedMarketMap()).thenReturn(mapOf("KRW-BTC" to testMarket))
 
@@ -90,7 +90,7 @@ class MarketServiceTest {
 		// given
 		val principal = mock(CustomUserPrincipal::class.java)
 		val id = UUID.randomUUID()
-		`when`(principal.id()).thenReturn(id)
+		`when`(principal.id).thenReturn(id)
 
 		// 마켓 객체 mock
 		val market = mock(Market::class.java)

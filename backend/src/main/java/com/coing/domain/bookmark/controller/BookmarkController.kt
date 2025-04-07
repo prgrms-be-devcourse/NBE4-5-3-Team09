@@ -63,7 +63,7 @@ class BookmarkController(
         @PathVariable marketCode: String,
         @AuthenticationPrincipal principal: CustomUserPrincipal
     ): ResponseEntity<BasicResponse> {
-        bookmarkService.deleteBookmark(principal.id(), marketCode)
+        bookmarkService.deleteBookmark(principal.id, marketCode)
         val response = BasicResponse(HttpStatus.NO_CONTENT, "북마크 삭제 성공", "")
         return ResponseEntity.ok(response)
     }

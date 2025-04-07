@@ -1,6 +1,6 @@
-package com.coing.domain.user.entity;
+package com.coing.domain.user.entity
 
-public enum Authority {
-	USER,
-	ADMIN
+enum class Authority {
+    USER,
+    ADMIN
 }

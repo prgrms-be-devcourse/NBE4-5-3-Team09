@@ -71,7 +71,7 @@ class MarketService(
 		val filtered = getCachedMarketList().filter { it.code.startsWith(type) }
 
 		val bookmarkedMarkets: Set<String> = principal?.let {
-			bookmarkRepository.findByUserIdAndQuote(it.id(), type)
+			bookmarkRepository.findByUserIdAndQuote(it.id, type)
 				.map { bookmark -> bookmark.market.code }
 				.toSet()
 		} ?: emptySet()
@@ -93,7 +93,7 @@ class MarketService(
 	fun getMarketByUserAndCode(principal: CustomUserPrincipal?, code: String): MarketResponseDto {
 		val cachedMarkets = getCachedMarketList()
 		val isBookmarked = principal?.let {
-			bookmarkRepository.existsByUserIdAndMarketCode(it.id(), code)
+			bookmarkRepository.existsByUserIdAndMarketCode(it.id, code)
 		} ?: false
 
 		return cachedMarkets.find { it.code == code }

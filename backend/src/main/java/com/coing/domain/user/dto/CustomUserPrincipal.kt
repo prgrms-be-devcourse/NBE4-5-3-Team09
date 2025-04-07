@@ -1,10 +1,7 @@
-package com.coing.domain.user.dto;
+package com.coing.domain.user.dto
 
-import java.util.UUID;
+import java.util.UUID
 
-public record CustomUserPrincipal(UUID id) {
-	@Override
-	public String toString() {
-		return id.toString();
-	}
+data class CustomUserPrincipal(val id: UUID) {
+    override fun toString(): String = id.toString()
 }
