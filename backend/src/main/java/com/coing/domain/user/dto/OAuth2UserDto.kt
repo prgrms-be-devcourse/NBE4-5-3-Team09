@@ -1,13 +1,15 @@
-package com.coing.domain.user.dto;
+package com.coing.domain.user.dto
 
-import com.coing.domain.user.entity.Provider;
+import com.coing.domain.user.entity.Provider
 
-public record OAuth2UserDto(
-	Provider provider,
-	String name,
-	String email
+data class OAuth2UserDto(
+	val provider: Provider,
+	val name: String,
+	val email: String
 ) {
-	public static OAuth2UserDto of(Provider provider, String name, String email) {
-		return new OAuth2UserDto(provider, name, email);
+	companion object {
+		fun of(provider: Provider, name: String, email: String): OAuth2UserDto {
+			return OAuth2UserDto(provider, name, email)
+		}
 	}
 }
