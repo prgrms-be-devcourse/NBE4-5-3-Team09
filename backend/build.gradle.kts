@@ -58,6 +58,7 @@ dependencies {
     testImplementation("org.mockito:mockito-core:4.6.1")
     testImplementation("org.mockito:mockito-junit-jupiter:4.6.1")
     testImplementation("org.awaitility:awaitility:4.3.0")
+    testImplementation("org.mockito.kotlin:mockito-kotlin:4.1.0")
 
     implementation("io.jsonwebtoken:jjwt-api:0.12.6")
     runtimeOnly("io.jsonwebtoken:jjwt-impl:0.12.6")

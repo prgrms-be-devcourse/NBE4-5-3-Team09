@@ -2,6 +2,7 @@ package com.coing.domain.user.controller
 
 import com.coing.CoingApplication
 import com.coing.domain.user.controller.dto.*
+import com.coing.domain.user.dto.CustomUserPrincipal
 import com.coing.domain.user.entity.Provider
 import com.coing.domain.user.entity.User
 import com.coing.domain.user.repository.UserRepository
@@ -14,15 +15,20 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import org.hamcrest.Matchers.*
 import org.junit.jupiter.api.Test
 import org.mockito.BDDMockito.given
+import org.mockito.Mockito.*
+import org.mockito.kotlin.any
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment
 import org.springframework.boot.test.mock.mockito.MockBean
 import org.springframework.http.MediaType
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
+import org.springframework.security.core.authority.SimpleGrantedAuthority
+import org.springframework.security.test.context.support.WithMockUser
+import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.*
 import org.springframework.test.web.servlet.MockMvc
-import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
-import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.*
 import java.util.*
 
@@ -55,31 +61,33 @@ class UserControllerIntegrationTest {
     lateinit var passwordResetService: PasswordResetService
 
     // 회원가입 통합 테스트
-//    @Test
-//    fun `회원가입 - 성공`() {
-//        val signUpRequest = UserSignUpRequest(
-//            name = "테스트",
-//            email = "integration@test.com",
-//            password = "pass1234!",
-//            passwordConfirm = "pass1234!"
-//        )
-//        val userResponse = UserResponse(
-//            id = UUID.randomUUID(),
-//            name = "테스트",
-//            email = "integration@test.com",
-//            verified = false
-//        )
-//        given(userService.join(any())).willReturn(userResponse)
-//
-//        mockMvc.perform(
-//            post("/api/auth/signup")
-//                .contentType(MediaType.APPLICATION_JSON)
-//                .content(objectMapper.writeValueAsString(signUpRequest))
-//        )
-//            .andExpect(status().isCreated)
-//            .andExpect(jsonPath("$.email", `is`("integration@test.com")))
-//            .andExpect(jsonPath("$.userId", not(emptyString())))
-//    }
+    @Test
+    fun `회원가입 - 성공`() {
+        val signUpRequest = UserSignUpRequest(
+            name = "테스트",
+            email = "integration@test.com",
+            password = "pass1234!",
+            passwordConfirm = "pass1234!"
+        )
+        val userResponse = UserResponse(
+            id = UUID.randomUUID(),
+            name = "테스트",
+            email = "integration@test.com",
+            verified = false
+        )
+        // 코틀린의 any()를 사용하여 stubbing 진행
+        given(userService.join(any())).willReturn(userResponse)
+
+        mockMvc.perform(
+            post("/api/auth/signup")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(signUpRequest))
+        )
+            .andExpect(status().isCreated)
+            .andExpect(jsonPath("$.email", `is`("integration@test.com")))
+            .andExpect(jsonPath("$.userId", not(emptyString())))
+    }
+
 
     // 이메일 인증 - 토큰 유효하지 않음 통합 테스트
     @Test
@@ -134,7 +142,7 @@ class UserControllerIntegrationTest {
             .andExpect(jsonPath("$.message", `is`("이미 인증되었습니다.")))
     }
 
-    // 일반 유저 로그인 통합 테스트
+    // 일반 유저 로그인 통합 테스트 (로그인은 인증 없이도 가능)
     @Test
     fun `일반 유저 로그인 - 성공`() {
         val loginRequest = UserLoginRequest(
@@ -165,27 +173,41 @@ class UserControllerIntegrationTest {
             .andExpect(status().isForbidden)
     }
 
-    // 로그아웃 통합 테스트
+    // 로그아웃 통합 테스트 - 인증된 사용자 필요
     @Test
+    @WithMockUser // 기본 사용자("user")로 인증
     fun `회원 로그아웃 - 성공`() {
         mockMvc.perform(post("/api/auth/logout"))
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.message", containsString("로그아웃 성공")))
     }
 
-    // 회원 탈퇴 통합 테스트
-//    @Test
-//    fun `회원 탈퇴 - 성공`() {
-//        val signOutRequest = SignOutRequest(password = "pass1234!")
-//        // 실제 서비스에서는 회원 탈퇴 로직이 실행된다고 가정
-//        mockMvc.perform(
-//            delete("/api/auth/signout")
-//                .contentType(MediaType.APPLICATION_JSON)
-//                .content(objectMapper.writeValueAsString(signOutRequest))
-//        )
-//            .andExpect(status().isOk)
-//            .andExpect(content().string(containsString("회원 탈퇴 성공")))
-//    }
+    // 회원 탈퇴 통합 테스트 - 인증된 사용자 필요
+    @Test
+    fun `회원 탈퇴 - 성공`() {
+        // 동일한 UUID를 사용하여 principal 생성
+        val uuid = UUID.randomUUID()
+        val principal = CustomUserPrincipal(uuid)
+        val signOutRequest = SignOutRequest("pass1234!")
+
+        // userService.quit() 호출 모의(stub)
+        doNothing().`when`(userService).quit(uuid, signOutRequest.password)
+
+        // UsernamePasswordAuthenticationToken 생성 (CustomUserPrincipal 사용)
+        val authToken = UsernamePasswordAuthenticationToken(principal, null, listOf(SimpleGrantedAuthority("ROLE_USER")))
+
+        mockMvc.perform(
+            delete("/api/auth/signout")
+                .with(authentication(authToken))
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(signOutRequest))
+        )
+            .andExpect(status().isOk)
+            .andExpect(content().string(containsString("회원 탈퇴 성공")))
+
+        verify(userService, times(1)).quit(uuid, signOutRequest.password)
+    }
 
     // 비밀번호 재설정 요청 통합 테스트
     @Test
@@ -210,25 +232,6 @@ class UserControllerIntegrationTest {
             .andExpect(jsonPath("$.status", `is`("success")))
             .andExpect(jsonPath("$.message", `is`("비밀번호 재설정 이메일 전송되었습니다.")))
     }
-
-    // 비밀번호 재설정 확인 - 비밀번호 불일치 통합 테스트
-//    @Test
-//    fun `비밀번호 재설정 확인 - 비밀번호 불일치`() {
-//        val token = "validToken"
-//        val resetConfirmRequest = PasswordResetConfirmRequest(
-//            newPassword = "newPass1!",
-//            newPasswordConfirm = "differentPass!"
-//        )
-//        mockMvc.perform(
-//            post("/api/auth/password-reset/confirm")
-//                .param("token", token)
-//                .contentType(MediaType.APPLICATION_JSON)
-//                .content(objectMapper.writeValueAsString(resetConfirmRequest))
-//        )
-//            .andExpect(status().isBadRequest)
-//            .andExpect(jsonPath("$.status", `is`("error")))
-//            .andExpect(jsonPath("$.message", `is`("비밀번호 확인이 일치하지 않습니다.")))
-//    }
 
     // 비밀번호 재설정 확인 - 성공 통합 테스트
     @Test
