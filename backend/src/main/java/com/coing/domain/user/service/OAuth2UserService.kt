@@ -27,12 +27,24 @@ class OAuth2UserService(
 
     private fun convertKakaoUserAttribute(oAuth2User: OAuth2User): OAuth2UserDto {
         val attribute = oAuth2User.attributes
-        val properties = attribute["properties"] as Map<String, Any>
-        val kakaoAccount = attribute["kakao_account"] as Map<String, Any>
+
+        val properties = attribute["properties"]
+        val kakaoAccount = attribute["kakao_account"]
+
+        if (properties !is Map<*, *> || kakaoAccount !is Map<*, *>) {
+            throw IllegalArgumentException("invalid.kakao.attribute")
+        }
+
+        val nickname = properties["nickname"]?.toString()
+            ?: throw IllegalArgumentException("nickname.not.found")
+
+        val email = kakaoAccount["email"]?.toString()
+            ?: throw IllegalArgumentException("email.not.found")
+
         return OAuth2UserDto.of(
             Provider.KAKAO,
-            properties["nickname"].toString(),
-            kakaoAccount["email"].toString()
+            nickname,
+            email
         )
     }
 

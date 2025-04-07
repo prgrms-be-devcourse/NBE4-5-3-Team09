@@ -5,6 +5,7 @@ import com.coing.domain.user.controller.dto.*
 import com.coing.domain.user.dto.CustomUserPrincipal
 import com.coing.domain.user.entity.Provider
 import com.coing.domain.user.entity.User
+import com.coing.domain.user.entity.Authority
 import com.coing.domain.user.repository.UserRepository
 import com.coing.domain.user.email.service.EmailVerificationService
 import com.coing.domain.user.email.service.PasswordResetService
@@ -78,8 +79,8 @@ internal class UserControllerTest {
     @DisplayName("이메일 인증 - 토큰 유효하지 않음")
     fun testVerifyEmailInvalidToken() {
         `when`(authTokenService.parseId("invalidToken")).thenReturn(null)
-        val result = userController.verifyEmail("invalidToken")
-        assertEquals(HttpStatus.BAD_REQUEST, (result as ResponseEntity<*>).statusCode)
+        val result: ResponseEntity<*> = userController.verifyEmail("invalidToken")
+        assertEquals(HttpStatus.BAD_REQUEST, result.statusCode)
         val body = result.body as Map<*, *>
         assertEquals("error", body["status"])
         assertEquals("유효하지 않은 토큰입니다.", body["message"])
@@ -90,17 +91,11 @@ internal class UserControllerTest {
     fun testVerifyEmailAlreadyVerified() {
         val userId = UUID.randomUUID()
         `when`(authTokenService.parseId("validToken")).thenReturn(userId)
-        val user = User(
-            id = userId,
-            name = "테스트",
-            email = "test@test.com",
-            password = "dummy",
-            provider = Provider.EMAIL,
-            verified = true
-        )
+        val user = User(userId, "테스트", "test@test.com", "dummy", Authority.USER, true)
         `when`(userRepository.findById(userId)).thenReturn(Optional.of(user))
-        val result = userController.verifyEmail("validToken")
-        val body = (result as ResponseEntity<*>).body as Map<*, *>
+
+        val result: ResponseEntity<*> = userController.verifyEmail("validToken")
+        val body = result.body as Map<*, *>
         assertEquals("already", body["status"])
         assertEquals("이미 인증되었습니다.", body["message"])
     }
@@ -125,8 +120,8 @@ internal class UserControllerTest {
         `when`(emailVerificationService.verifyEmail(userId))
             .thenReturn(user.copy(verified = true))
 
-        val result = userController.verifyEmail("validToken")
-        val body = (result as ResponseEntity<*>).body as Map<*, *>
+        val result: ResponseEntity<*> = userController.verifyEmail("validToken")
+        val body = result.body as Map<*, *>
         assertEquals("success", body["status"])
         assertEquals("이메일 인증이 완료되었습니다.", body["message"])
     }
@@ -155,8 +150,8 @@ internal class UserControllerTest {
             verified = true
         )
         `when`(userRepository.findById(userId)).thenReturn(Optional.of(user))
-        val result = userController.resendEmail(userId)
-        val body = (result as ResponseEntity<*>).body as Map<*, *>
+        val result: ResponseEntity<*> = userController.resendEmail(userId)
+        val body = result.body as Map<*, *>
         assertEquals("already_verified", body["status"])
         assertEquals("이미 인증된 사용자입니다.", body["message"])
     }
@@ -175,8 +170,8 @@ internal class UserControllerTest {
         )
         `when`(userRepository.findById(userId)).thenReturn(Optional.of(user))
         doNothing().`when`(emailVerificationService).resendVerificationEmail(userId)
-        val result = userController.resendEmail(userId)
-        val body = (result as ResponseEntity<*>).body as Map<*, *>
+        val result: ResponseEntity<*> = userController.resendEmail(userId)
+        val body = result.body as Map<*, *>
         assertEquals("success", body["status"])
         assertEquals("이메일이 재전송되었습니다.", body["message"])
     }
@@ -191,7 +186,7 @@ internal class UserControllerTest {
 
         // 모의 response 객체에서 헤더 설정을 확인하기 위해 stub 처리
         doNothing().`when`(response).setHeader(anyString(), anyString())
-        val result = userController.login(UserLoginRequest(email, password), response)
+        val result: ResponseEntity<*> = userController.login(UserLoginRequest(email, password), response)
         assertEquals(HttpStatus.OK, result.statusCode)
         verify(response, atLeastOnce()).setHeader(eq("Set-Cookie"), anyString())
         verify(response, atLeastOnce()).setHeader(eq("Authorization"), anyString())
@@ -210,7 +205,7 @@ internal class UserControllerTest {
         `when`(userService.findById(userId)).thenReturn(userResponse)
 
         doNothing().`when`(response).setHeader(anyString(), anyString())
-        val result = userController.refreshToken(request, response)
+        val result: ResponseEntity<*> = userController.refreshToken(request, response)
         assertEquals(HttpStatus.OK, result.statusCode)
         verify(response, atLeastOnce()).setHeader(eq("Set-Cookie"), anyString())
         verify(response, atLeastOnce()).setHeader(eq("Authorization"), anyString())
@@ -220,7 +215,7 @@ internal class UserControllerTest {
     @DisplayName("회원 로그아웃")
     fun testLogout() {
         doNothing().`when`(response).setHeader(anyString(), anyString())
-        val result = userController.logout(request, response)
+        val result: ResponseEntity<*> = userController.logout(request, response)
         assertEquals(HttpStatus.OK, result.statusCode)
         verify(response, atLeastOnce()).setHeader(eq("Set-Cookie"), anyString())
     }
@@ -231,18 +226,21 @@ internal class UserControllerTest {
         val principal = CustomUserPrincipal(UUID.randomUUID())
         val signOutRequest = SignOutRequest("pass1234!")
         doNothing().`when`(userService).quit(principal.id, signOutRequest.password)
-        val result = userController.signOut(signOutRequest, principal)
-        assertEquals(HttpStatus.OK, (result as ResponseEntity<*>).statusCode)
+
+        val result: ResponseEntity<*> = userController.signOut(signOutRequest, principal)
+        assertEquals(HttpStatus.OK, result.statusCode)
         verify(userService, times(1)).quit(principal.id, signOutRequest.password)
     }
 
+    @Suppress("UNCHECKED_CAST")
     @Test
     @DisplayName("회원 정보 조회 - 성공")
     fun testGetUserInfoSuccess() {
         val principal = CustomUserPrincipal(UUID.randomUUID())
         val userResponse = UserResponse(principal.id, "테스트", "test@test.com", true)
         `when`(userService.findById(principal.id)).thenReturn(userResponse)
-        val result = userController.getUserInfo(principal)
+        val result = userController.getUserInfo(principal) as? ResponseEntity<UserResponse>
+            ?: throw IllegalStateException("Expected ResponseEntity<UserResponse>")
         assertEquals(HttpStatus.OK, result.statusCode)
         val responseBody = result.body as UserResponse
         assertEquals("test@test.com", responseBody.email)
@@ -253,8 +251,8 @@ internal class UserControllerTest {
     fun testRequestPasswordResetUserNotFound() {
         val requestDto = PasswordResetRequest("test@test.com")
         `when`(userRepository.findByEmail(requestDto.email)).thenReturn(Optional.empty())
-        val result = userController.requestPasswordReset(requestDto)
-        assertEquals(HttpStatus.BAD_REQUEST, (result as ResponseEntity<*>).statusCode)
+        val result: ResponseEntity<*> = userController.requestPasswordReset(requestDto)
+        assertEquals(HttpStatus.BAD_REQUEST, result.statusCode)
         val body = result.body as Map<*, *>
         assertEquals("error", body["status"])
     }
@@ -273,8 +271,8 @@ internal class UserControllerTest {
         )
         `when`(userRepository.findByEmail(requestDto.email)).thenReturn(Optional.of(user))
         doNothing().`when`(passwordResetService).sendPasswordResetEmail(user)
-        val result = userController.requestPasswordReset(requestDto)
-        assertEquals(HttpStatus.OK, (result as ResponseEntity<*>).statusCode)
+        val result: ResponseEntity<*> = userController.requestPasswordReset(requestDto)
+        assertEquals(HttpStatus.OK, result.statusCode)
         val body = result.body as Map<*, *>
         assertEquals("success", body["status"])
     }
@@ -284,8 +282,8 @@ internal class UserControllerTest {
     fun testConfirmPasswordResetInvalidToken() {
         `when`(authTokenService.parseId("invalidToken")).thenReturn(null)
         val requestDto = PasswordResetConfirmRequest("newPass1!", "newPass1!")
-        val result = userController.confirmPasswordReset("invalidToken", requestDto)
-        assertEquals(HttpStatus.BAD_REQUEST, (result as ResponseEntity<*>).statusCode)
+        val result: ResponseEntity<*> = userController.confirmPasswordReset("invalidToken", requestDto)
+        assertEquals(HttpStatus.BAD_REQUEST, result.statusCode)
         val body = result.body as Map<*, *>
         assertEquals("error", body["status"])
     }
@@ -295,8 +293,8 @@ internal class UserControllerTest {
     fun testConfirmPasswordResetMismatch() {
         `when`(authTokenService.parseId("validToken")).thenReturn(UUID.randomUUID())
         val requestDto = PasswordResetConfirmRequest("newPass1!", "differentPass!")
-        val result = userController.confirmPasswordReset("validToken", requestDto)
-        assertEquals(HttpStatus.BAD_REQUEST, (result as ResponseEntity<*>).statusCode)
+        val result: ResponseEntity<*> = userController.confirmPasswordReset("validToken", requestDto)
+        assertEquals(HttpStatus.BAD_REQUEST, result.statusCode)
         val body = result.body as Map<*, *>
         assertEquals("error", body["status"])
     }
@@ -308,8 +306,9 @@ internal class UserControllerTest {
         `when`(authTokenService.parseId("validToken")).thenReturn(userId)
         val requestDto = PasswordResetConfirmRequest("newPass1!", "newPass1!")
         doNothing().`when`(userService).updatePassword(userId, requestDto.newPassword)
-        val result = userController.confirmPasswordReset("validToken", requestDto)
-        assertEquals(HttpStatus.OK, (result as ResponseEntity<*>).statusCode)
+
+        val result: ResponseEntity<*> = userController.confirmPasswordReset("validToken", requestDto)
+        assertEquals(HttpStatus.OK, result.statusCode)
         val body = result.body as Map<*, *>
         assertEquals("success", body["status"])
     }

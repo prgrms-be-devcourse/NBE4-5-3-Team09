@@ -22,12 +22,12 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment
-import org.springframework.boot.test.mock.mockito.MockBean
 import org.springframework.http.MediaType
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.test.context.support.WithMockUser
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.*
+import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.post
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*
@@ -45,22 +45,22 @@ class UserControllerIntegrationTest {
     @Autowired
     lateinit var objectMapper: ObjectMapper
 
-    @MockBean
+    @MockitoBean
     lateinit var userService: UserService
 
-    @MockBean
+    @MockitoBean
     lateinit var userRepository: UserRepository
 
-    @MockBean
+    @MockitoBean
     lateinit var authTokenService: AuthTokenService
 
-    @MockBean
+    @MockitoBean
     lateinit var emailVerificationService: EmailVerificationService
 
-    @MockBean
+    @MockitoBean
     lateinit var messageUtil: MessageUtil
 
-    @MockBean
+    @MockitoBean
     lateinit var passwordResetService: PasswordResetService
 
     // 회원가입 통합 테스트

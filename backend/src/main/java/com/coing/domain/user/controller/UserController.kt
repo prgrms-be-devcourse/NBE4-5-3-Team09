@@ -155,7 +155,6 @@ class UserController(
         }
         val id = UUID.fromString(claims["id"].toString())
         val user: UserResponse = userService.findById(id)
-            ?: throw BusinessException(messageUtil.resolveMessage("member.not.found"), HttpStatus.BAD_REQUEST, "")
         issuedToken(response, user)
         return ResponseEntity.ok(BasicResponse(HttpStatus.OK, "토큰 재발급 성공", ""))
     }
