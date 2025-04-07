@@ -1,12 +1,14 @@
 package com.coing.domain.chat.entity
 
 import com.coing.domain.coin.market.entity.Market
+import com.coing.global.annotation.NoArg
 import com.coing.util.BaseEntity
 import jakarta.persistence.*
 import java.time.LocalDateTime
 
 @Entity
 @Table(name = "chat_rooms")
+@NoArg
 open class ChatRoom(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -23,12 +25,4 @@ open class ChatRoom(
 
     // 채팅방 생성 시간
     open var createdAt: LocalDateTime? = null
-) : BaseEntity() {
-    // JPA용 기본 생성자
-    constructor() : this(
-        id = null,
-        market = null,
-        name = "",
-        createdAt = null
-    )
-}
+) : BaseEntity()

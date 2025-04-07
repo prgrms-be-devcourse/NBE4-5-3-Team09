@@ -52,22 +52,29 @@ dependencies {
     implementation("org.bouncycastle:bcprov-jdk15on:1.70")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
+
     testImplementation("org.springframework.security:spring-security-test")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     compileOnly("javax.servlet:javax.servlet-api:4.0.1")
     testImplementation("org.mockito:mockito-core:4.6.1")
     testImplementation("org.mockito:mockito-junit-jupiter:4.6.1")
     testImplementation("org.awaitility:awaitility:4.3.0")
+    testImplementation("org.mockito.kotlin:mockito-kotlin:4.1.0")
 
     implementation("io.jsonwebtoken:jjwt-api:0.12.6")
     runtimeOnly("io.jsonwebtoken:jjwt-impl:0.12.6")
     runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.12.6")
     implementation("org.springframework.boot:spring-boot-starter-cache")
     implementation("com.github.ben-manes.caffeine:caffeine:3.1.8")
+
+    implementation("com.github.ben-manes.caffeine:caffeine:3.1.8")
+    implementation("org.springframework.boot:spring-boot-starter-cache")
+
     implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.18.3")
     implementation(kotlin("stdlib"))
     implementation ("org.jetbrains.kotlin:kotlin-reflect")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
+    testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
 }
 
 tasks.named<Test>("test") {
