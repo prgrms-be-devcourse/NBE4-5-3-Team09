@@ -30,8 +30,8 @@ public class OrderbookTest {
 			.build();
 
 		// then
-		assertEquals(100.0, orderbook.getBestPrices().bestAskPrice());
-		assertEquals(90.0, orderbook.getBestPrices().bestBidPrice());
+		assertEquals(100.0, orderbook.getBestPrices().bestAskPrice);
+		assertEquals(90.0, orderbook.getBestPrices().bestBidPrice);
 		assertEquals(10.0, orderbook.getSpread()); // spread = 100 - 90 = 10
 		assertEquals(-0.3333333333, orderbook.getImbalance(),
 			0.0001); //imbalance = (bid - ask) / (bid+ask) = (5 - 10) / 15 = -0.3333
