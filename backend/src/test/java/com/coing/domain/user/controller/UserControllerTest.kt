@@ -29,8 +29,10 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.test.context.support.WithMockUser
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.*
 import org.springframework.test.web.servlet.MockMvc
+import org.springframework.test.web.servlet.post
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.*
+import org.springframework.web.servlet.function.RequestPredicates.param
 import java.util.*
 
 @SpringBootTest(classes = [CoingApplication::class], webEnvironment = WebEnvironment.RANDOM_PORT)
@@ -256,6 +258,7 @@ class UserControllerIntegrationTest {
             .andExpect(jsonPath("$.message", `is`("비밀번호가 재설정되었습니다.")))
     }
 
+
     @Test
     fun `redirectSocialLogin - forbidden`() {
         val tempToken = "invalid-token"
@@ -290,3 +293,4 @@ class UserControllerIntegrationTest {
             .andExpect(jsonPath("$.message").value("소셜 로그인 성공"))
     }
 }
+
