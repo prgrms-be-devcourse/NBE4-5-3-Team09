@@ -25,12 +25,12 @@ public class OrderbookService {
 
 	public void updateOrderbook(Orderbook orderbook) {
 		OrderbookDto dto = OrderbookDto.from(orderbook);
-		orderbookCache.put(dto.code(), dto);
+		orderbookCache.put(dto.code, dto);
 		publish(dto);
 	}
 
 	public void publish(OrderbookDto dto) {
-		String market = dto.code();
+		String market = dto.code;
 		long now = System.currentTimeMillis();
 		long lastSent = lastSentTime.getOrDefault(market, 0L);
 

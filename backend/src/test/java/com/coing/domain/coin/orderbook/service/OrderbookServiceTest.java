@@ -66,7 +66,7 @@ public class OrderbookServiceTest {
 			.convertAndSend(eq(expectedChannel), captor.capture());
 
 		OrderbookDto sentDto = captor.getValue();
-		assertEquals("orderbook", sentDto.type());
-		assertEquals("KRW-BTC", sentDto.code());
+		assertEquals("orderbook", sentDto.type);
+		assertEquals("KRW-BTC", sentDto.code);
 	}
 }
