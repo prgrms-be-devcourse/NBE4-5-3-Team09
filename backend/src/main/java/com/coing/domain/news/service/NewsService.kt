@@ -7,6 +7,7 @@ import java.io.BufferedReader
 import java.io.InputStream
 import java.io.InputStreamReader
 import java.net.HttpURLConnection
+import java.net.URI
 import java.net.URL
 import java.net.URLEncoder
 import java.util.NoSuchElementException
@@ -90,7 +91,7 @@ class NewsService(
 
 	private fun connect(apiUrl: String): HttpURLConnection {
 		return try {
-			val url = URL(apiUrl)
+			val url = URI.create(apiUrl).toURL()
 			url.openConnection() as HttpURLConnection
 		} catch (e: Exception) {
 			throw RuntimeException("연결 실패: $apiUrl", e)

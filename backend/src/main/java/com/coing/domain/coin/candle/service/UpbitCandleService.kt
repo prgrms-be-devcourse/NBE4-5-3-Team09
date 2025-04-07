@@ -17,7 +17,7 @@ class UpbitCandleService {
 	 * 분봉의 경우 unit 파라미터를 사용합니다.
 	 */
 	fun getLatestCandles(market: String, candleType: String, unit: Int?): List<CandleDto> {
-		val url = when (candleType.toLowerCase()) {
+		val url = when (candleType.lowercase()) {
 			"seconds" -> "https://api.upbit.com/v1/candles/seconds?market=$market&count=200"
 			"minutes" -> {
 				val minuteUnit = unit ?: 1
