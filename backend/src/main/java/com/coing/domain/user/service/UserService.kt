@@ -8,6 +8,8 @@ import com.coing.domain.user.entity.User
 import com.coing.domain.user.repository.UserRepository
 import com.coing.global.exception.BusinessException
 import com.coing.util.MessageUtil
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.scheduling.annotation.Scheduled
@@ -22,13 +24,14 @@ class UserService(
     private val userRepository: UserRepository,
     private val passwordEncoder: PasswordEncoder,
     private val emailVerificationService: EmailVerificationService,
-    private val messageUtil: MessageUtil
+    private val messageUtil: MessageUtil,
+    private val emailScope: CoroutineScope
 ) {
 
     private val log = LoggerFactory.getLogger(UserService::class.java)
 
     @Transactional
-    fun join(request: UserSignUpRequest): UserResponse {
+    suspend fun join(request: UserSignUpRequest): UserResponse {
         log.info("회원가입 시도: ${request.email}")
 
         // 비밀번호와 비밀번호 확인 일치 여부 검사
@@ -49,19 +52,25 @@ class UserService(
         }
 
         val encodedPassword = passwordEncoder.encode(request.password)
-        // 빌더 대신 생성자 호출 (User 엔티티의 기본 생성자/기본값 활용)
+        // User 엔티티 생성 (verified 기본값은 false로 가정)
         val userEntity = User(
             name = request.name,
             email = request.email,
             password = encodedPassword,
             provider = Provider.EMAIL
-            // verified 기본값은 false로 처리한다고 가정
         )
 
         val savedUser = userRepository.save(userEntity)
 
-        // 이메일 인증 메일 전송 실패 시 예외 전파 (전체 롤백)
-        emailVerificationService.sendVerificationEmail(savedUser)
+        // 회원가입 트랜잭션이 커밋된 후, 전역 코루틴 스코프를 이용하여 이메일 전송 작업을 백그라운드에서 실행합니다.
+        emailScope.launch {
+            try {
+                emailVerificationService.sendVerificationEmail(savedUser)
+            } catch (e: Exception) {
+                log.error("이메일 전송 실패: ${savedUser.email}", e)
+                // 이메일 전송 실패 시 추가 처리가 필요하다면 여기에 구현
+            }
+        }
 
         return UserResponse.from(savedUser)
     }

@@ -19,6 +19,8 @@ import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.servlet.http.Cookie
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseCookie
 import org.springframework.http.ResponseEntity
@@ -36,19 +38,29 @@ class UserController(
     private val authTokenService: AuthTokenService,
     private val emailVerificationService: EmailVerificationService,
     private val messageUtil: MessageUtil,
-    private val passwordResetService: PasswordResetService
+    private val passwordResetService: PasswordResetService,
+    private val emailScope: CoroutineScope
 ) {
 
     @Operation(summary = "일반 유저 회원 가입")
     @PostMapping("/signup")
     @ApiErrorCodeExamples(ErrorCode.MAIL_SEND_FAIL, ErrorCode.ALREADY_REGISTERED_EMAIL, ErrorCode.INVALID_PASSWORD_CONFIRM)
-    fun signUp(
+    suspend fun signUp(
         @RequestBody @Validated request: UserSignUpRequest,
         response: HttpServletResponse
     ): ResponseEntity<UserSignupResponse> {
+        // 가입 처리를 진행하고 DTO를 반환받음
         val user: UserResponse = userService.join(request)
+        // 가입된 사용자의 실제 User 엔티티를 조회합니다.
+        val userEntity: User = userRepository.findById(user.id).orElseThrow {
+            BusinessException(messageUtil.resolveMessage("member.not.found"), HttpStatus.BAD_REQUEST, "")
+        }
+        // 전역 emailScope를 통해 이메일 전송 작업을 백그라운드에서 실행합니다.
+        emailScope.launch {
+            emailVerificationService.sendVerificationEmail(userEntity)
+        }
         val signupResponse = UserSignupResponse(
-            message = "회원가입 성공. 인증 이메일 전송 완료.",
+            message = "회원가입 성공. 인증 이메일 전송 요청되었습니다.",
             name = user.name,
             email = user.email,
             userId = user.id
@@ -65,7 +77,6 @@ class UserController(
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(mapOf("status" to "error", "message" to "유효하지 않은 토큰입니다."))
         }
-
         val user: User = userRepository.findById(userId).orElseThrow {
             BusinessException(messageUtil.resolveMessage("member.not.found"), HttpStatus.BAD_REQUEST, "")
         }
@@ -95,7 +106,7 @@ class UserController(
     @Operation(summary = "이메일 인증 메일 재전송")
     @PostMapping("/resend-email")
     @ApiErrorCodeExamples(ErrorCode.MAIL_SEND_FAIL, ErrorCode.MEMBER_NOT_FOUND)
-    fun resendEmail(@RequestParam(name = "userId") userId: UUID): ResponseEntity<*> {
+    suspend fun resendEmail(@RequestParam(name = "userId") userId: UUID): ResponseEntity<*> {
         val user: User = userRepository.findById(userId).orElseThrow {
             BusinessException(messageUtil.resolveMessage("member.not.found"), HttpStatus.BAD_REQUEST, "")
         }
@@ -103,13 +114,11 @@ class UserController(
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(mapOf("status" to "already_verified", "message" to "이미 인증된 사용자입니다."))
         }
-        return try {
+        // 전역 emailScope를 통해 이메일 재전송 작업을 백그라운드에서 실행합니다.
+        emailScope.launch {
             emailVerificationService.resendVerificationEmail(userId)
-            ResponseEntity.ok(mapOf("status" to "success", "message" to "이메일이 재전송되었습니다."))
-        } catch (e: Exception) {
-            ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(mapOf("status" to "error", "message" to "이메일 재전송에 실패했습니다."))
         }
+        return ResponseEntity.ok(mapOf("status" to "success", "message" to "이메일 재전송 요청되었습니다."))
     }
 
     @Operation(summary = "일반 유저 로그인")
@@ -208,8 +217,11 @@ class UserController(
                 .body(mapOf("status" to "error", "message" to "사용자를 찾을 수 없습니다."))
         }
         val user = userOptional.get()
-        passwordResetService.sendPasswordResetEmail(user)
-        return ResponseEntity.ok(mapOf("status" to "success", "message" to "비밀번호 재설정 이메일 전송되었습니다."))
+        // 전역 emailScope를 사용하여 비밀번호 재설정 이메일 전송을 백그라운드에서 실행합니다.
+        emailScope.launch {
+            passwordResetService.sendPasswordResetEmail(user)
+        }
+        return ResponseEntity.ok(mapOf("status" to "success", "message" to "비밀번호 재설정 이메일 전송 요청되었습니다."))
     }
 
     @Operation(summary = "비밀번호 재설정 확인")
@@ -240,24 +252,19 @@ class UserController(
         response: HttpServletResponse
     ): ResponseEntity<Any> {
         val token = "tempToken:$tempToken"
-
         val userIdStr = authTokenService.getUserIdWithTempToken(token)
             ?: return ResponseEntity.status(HttpStatus.FORBIDDEN)
                 .body(mapOf("status" to "error", "message" to "유효하지 않은 토큰입니다."))
-
         val userId = UUID.fromString(userIdStr)
         val userResponse = userService.findById(userId)
-
         issuedToken(response, userResponse)
         authTokenService.removeTempToken(token)
-
         return ResponseEntity.ok(mapOf("status" to "success", "message" to "소셜 로그인 성공"))
     }
 
     private fun issuedToken(response: HttpServletResponse, user: UserResponse) {
         val accessToken = authTokenService.genAccessToken(user)
         val refreshToken = authTokenService.genRefreshToken(user)
-
         val refreshCookie = ResponseCookie.from("refreshToken", refreshToken)
             .httpOnly(true)
             .secure(true)
@@ -265,7 +272,6 @@ class UserController(
             .maxAge(604800) // 7일
             .sameSite("None")
             .build()
-
         response.setHeader("Set-Cookie", refreshCookie.toString())
         response.setHeader("Authorization", "Bearer $accessToken")
     }

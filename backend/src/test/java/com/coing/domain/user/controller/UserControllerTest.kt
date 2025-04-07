@@ -12,6 +12,7 @@ import com.coing.domain.user.email.service.EmailVerificationService
 import com.coing.domain.user.email.service.PasswordResetService
 import com.coing.util.MessageUtil
 import com.fasterxml.jackson.databind.ObjectMapper
+import kotlinx.coroutines.runBlocking
 import org.hamcrest.Matchers.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -74,7 +75,7 @@ class UserControllerIntegrationTest {
 
     // 회원가입 통합 테스트
     @Test
-    fun `회원가입 - 성공`() {
+    fun `회원가입 - 성공`() = runBlocking {
         val signUpRequest = UserSignUpRequest(
             name = "테스트",
             email = "integration@test.com",
@@ -87,7 +88,7 @@ class UserControllerIntegrationTest {
             email = "integration@test.com",
             verified = false
         )
-        // 코틀린의 any()를 사용하여 stubbing 진행
+        // suspend 함수인 join() 호출을 위해 runBlocking 내부에서 stubbing
         given(userService.join(any())).willReturn(userResponse)
 
         mockMvc.perform(
@@ -242,7 +243,7 @@ class UserControllerIntegrationTest {
         )
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.status", `is`("success")))
-            .andExpect(jsonPath("$.message", `is`("비밀번호 재설정 이메일 전송되었습니다.")))
+            .andExpect(jsonPath("$.message", `is`("비밀번호 재설정 이메일 전송 요청되었습니다.")))
     }
 
     // 비밀번호 재설정 확인 - 성공 통합 테스트

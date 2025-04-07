@@ -4,6 +4,8 @@ import com.coing.domain.user.entity.User
 import com.coing.global.exception.BusinessException
 import com.coing.util.MessageUtil
 import com.coing.util.Ut
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.HttpStatus
@@ -20,10 +22,9 @@ class PasswordResetService(
     @Value("\${custom.jwt.secret-key}")
     private lateinit var jwtSecretKey: String
 
-    // 비밀번호 재설정 이메일 전송 (비동기 처리 및 트랜잭션 관리)
-    @Async
+    // 비밀번호 재설정 이메일 전송 (코루틴 기반, IO 디스패처 사용)
     @Transactional
-    fun sendPasswordResetEmail(user: User) {
+    suspend fun sendPasswordResetEmail(user: User) = withContext(Dispatchers.IO) {
         // JWT 토큰 생성 (만료: 1시간 = 3600초)
         val claims = mapOf("id" to user.id)
         val token = Ut.Jwt.createToken(jwtSecretKey, 3600, claims)

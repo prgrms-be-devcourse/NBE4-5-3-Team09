@@ -1,24 +1,26 @@
 package com.coing.domain.user.service
 
-import com.coing.domain.user.controller.UserController
+import com.coing.CoingApplication
 import com.coing.domain.user.controller.dto.*
 import com.coing.domain.user.dto.CustomUserPrincipal
 import com.coing.domain.user.entity.Provider
 import com.coing.domain.user.entity.User
-import com.coing.domain.user.entity.Authority
 import com.coing.domain.user.repository.UserRepository
 import com.coing.domain.user.email.service.EmailVerificationService
 import com.coing.domain.user.email.service.PasswordResetService
+import com.coing.domain.user.entity.Authority
 import com.coing.global.exception.BusinessException
 import com.coing.util.MessageUtil
 import jakarta.servlet.http.Cookie
-import jakarta.servlet.http.HttpServletRequest
-import jakarta.servlet.http.HttpServletResponse
-import org.junit.jupiter.api.Assertions.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.runBlocking
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
-import org.mockito.ArgumentMatchers.anyString
+import org.junit.jupiter.api.assertThrows
 import org.mockito.Mockito.*
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -33,9 +35,9 @@ internal class UserControllerTest {
     private lateinit var messageUtil: MessageUtil
     private lateinit var passwordResetService: PasswordResetService
 
-    private lateinit var userController: UserController
-    private lateinit var request: HttpServletRequest
-    private lateinit var response: HttpServletResponse
+    private lateinit var userController: com.coing.domain.user.controller.UserController
+    private lateinit var request: jakarta.servlet.http.HttpServletRequest
+    private lateinit var response: jakarta.servlet.http.HttpServletResponse
 
     @BeforeEach
     fun setUp() {
@@ -46,17 +48,21 @@ internal class UserControllerTest {
         messageUtil = mock(MessageUtil::class.java)
         passwordResetService = mock(PasswordResetService::class.java)
 
-        userController = UserController(
+        // emailScope 임시 생성: 테스트에서는 직접 생성한 CoroutineScope 사용
+        val emailScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+
+        userController = com.coing.domain.user.controller.UserController(
             userService,
             userRepository,
             authTokenService,
             emailVerificationService,
             messageUtil,
-            passwordResetService
+            passwordResetService,
+            emailScope
         )
 
-        request = mock(HttpServletRequest::class.java)
-        response = mock(HttpServletResponse::class.java)
+        request = mock(jakarta.servlet.http.HttpServletRequest::class.java)
+        response = mock(jakarta.servlet.http.HttpServletResponse::class.java)
 
         // 메시지 해석: 입력받은 메시지 코드를 그대로 반환하도록 설정
         `when`(messageUtil.resolveMessage(anyString())).thenAnswer { invocation -> invocation.getArgument(0) }
@@ -64,15 +70,25 @@ internal class UserControllerTest {
 
     @Test
     @DisplayName("회원가입 - 성공")
-    fun testSignUpSuccess() {
+    fun testSignUpSuccess() = runBlocking {
         val signupRequest = UserSignUpRequest("테스트", "test@test.com", "pass1234!", "pass1234!")
         val userResponse = UserResponse(UUID.randomUUID(), "테스트", "test@test.com", false)
         `when`(userService.join(signupRequest)).thenReturn(userResponse)
 
+        // userService.join() 후, 실제 User 엔티티를 반환하도록 stub 설정
+        val userEntity = User(
+            id = userResponse.id,
+            name = userResponse.name,
+            email = userResponse.email,
+            password = "dummy", // 비밀번호는 테스트에 맞게 설정
+            provider = Provider.EMAIL,
+            verified = false
+        )
+        `when`(userRepository.findById(userResponse.id)).thenReturn(Optional.of(userEntity))
+
         val result: ResponseEntity<UserSignupResponse> = userController.signUp(signupRequest, response)
         assertEquals(HttpStatus.CREATED, result.statusCode)
         assertEquals("test@test.com", result.body?.email)
-        // 이메일 발송은 서비스 내에서 처리되므로 별도 검증은 서비스 테스트에서 진행
     }
 
     @Test
@@ -112,11 +128,8 @@ internal class UserControllerTest {
             provider = Provider.EMAIL,
             verified = false
         )
-        // authTokenService.parseId("validToken")가 userId를 반환하도록 stubbing
         `when`(authTokenService.parseId("validToken")).thenReturn(userId)
-        // userRepository에서 해당 user를 반환하도록 stubbing
         `when`(userRepository.findById(userId)).thenReturn(Optional.of(user))
-        // emailVerificationService.verifyEmail(userId)가 인증된 user를 반환하도록 stubbing
         `when`(emailVerificationService.verifyEmail(userId))
             .thenReturn(user.copy(verified = true))
 
@@ -131,7 +144,7 @@ internal class UserControllerTest {
     fun testIsVerifiedUserNotFound() {
         val userId = UUID.randomUUID()
         `when`(userRepository.findById(userId)).thenReturn(Optional.empty())
-        val exception = assertThrows(BusinessException::class.java) {
+        val exception = assertThrows<BusinessException> {
             userController.isVerified(userId)
         }
         assertEquals("member.not.found", exception.message)
@@ -139,7 +152,7 @@ internal class UserControllerTest {
 
     @Test
     @DisplayName("이메일 인증 메일 재전송 - 이미 인증된 사용자")
-    fun testResendEmailAlreadyVerified() {
+    fun testResendEmailAlreadyVerified() = runBlocking {
         val userId = UUID.randomUUID()
         val user = User(
             id = userId,
@@ -158,7 +171,7 @@ internal class UserControllerTest {
 
     @Test
     @DisplayName("이메일 인증 메일 재전송 - 성공")
-    fun testResendEmailSuccess() {
+    fun testResendEmailSuccess() = runBlocking {
         val userId = UUID.randomUUID()
         val user = User(
             id = userId,
@@ -169,13 +182,15 @@ internal class UserControllerTest {
             verified = false
         )
         `when`(userRepository.findById(userId)).thenReturn(Optional.of(user))
-        doNothing().`when`(emailVerificationService).resendVerificationEmail(userId)
+        // suspend 함수에 대해서 doReturn(Unit) 사용
+        runBlocking {
+            doReturn(Unit).`when`(emailVerificationService).resendVerificationEmail(userId)
+        }
         val result: ResponseEntity<*> = userController.resendEmail(userId)
         val body = result.body as Map<*, *>
         assertEquals("success", body["status"])
-        assertEquals("이메일이 재전송되었습니다.", body["message"])
+        assertEquals("이메일 재전송 요청되었습니다.", body["message"])
     }
-
     @Test
     @DisplayName("일반 유저 로그인 - 성공")
     fun testLoginSuccess() {
@@ -183,8 +198,6 @@ internal class UserControllerTest {
         val password = "pass1234!"
         val userResponse = UserResponse(UUID.randomUUID(), "테스트", email, true)
         `when`(userService.login(email, password)).thenReturn(userResponse)
-
-        // 모의 response 객체에서 헤더 설정을 확인하기 위해 stub 처리
         doNothing().`when`(response).setHeader(anyString(), anyString())
         val result: ResponseEntity<*> = userController.login(UserLoginRequest(email, password), response)
         assertEquals(HttpStatus.OK, result.statusCode)
@@ -203,7 +216,6 @@ internal class UserControllerTest {
         `when`(authTokenService.verifyToken(refreshToken)).thenReturn(claims)
         val userResponse = UserResponse(userId, "테스트", "test@test.com", true)
         `when`(userService.findById(userId)).thenReturn(userResponse)
-
         doNothing().`when`(response).setHeader(anyString(), anyString())
         val result: ResponseEntity<*> = userController.refreshToken(request, response)
         assertEquals(HttpStatus.OK, result.statusCode)
@@ -226,7 +238,6 @@ internal class UserControllerTest {
         val principal = CustomUserPrincipal(UUID.randomUUID())
         val signOutRequest = SignOutRequest("pass1234!")
         doNothing().`when`(userService).quit(principal.id, signOutRequest.password)
-
         val result: ResponseEntity<*> = userController.signOut(signOutRequest, principal)
         assertEquals(HttpStatus.OK, result.statusCode)
         verify(userService, times(1)).quit(principal.id, signOutRequest.password)
@@ -258,8 +269,7 @@ internal class UserControllerTest {
     }
 
     @Test
-    @DisplayName("비밀번호 재설정 요청 - 성공")
-    fun testRequestPasswordResetSuccess() {
+    fun `비밀번호 재설정 요청 - 성공`() = runBlocking {
         val requestDto = PasswordResetRequest("test@test.com")
         val user = User(
             id = UUID.randomUUID(),
@@ -270,7 +280,10 @@ internal class UserControllerTest {
             verified = true
         )
         `when`(userRepository.findByEmail(requestDto.email)).thenReturn(Optional.of(user))
-        doNothing().`when`(passwordResetService).sendPasswordResetEmail(user)
+        // suspend 함수 호출을 runBlocking 블록 내에서 실행
+        runBlocking {
+            passwordResetService.sendPasswordResetEmail(user)
+        }
         val result: ResponseEntity<*> = userController.requestPasswordReset(requestDto)
         assertEquals(HttpStatus.OK, result.statusCode)
         val body = result.body as Map<*, *>
@@ -306,7 +319,6 @@ internal class UserControllerTest {
         `when`(authTokenService.parseId("validToken")).thenReturn(userId)
         val requestDto = PasswordResetConfirmRequest("newPass1!", "newPass1!")
         doNothing().`when`(userService).updatePassword(userId, requestDto.newPassword)
-
         val result: ResponseEntity<*> = userController.confirmPasswordReset("validToken", requestDto)
         assertEquals(HttpStatus.OK, result.statusCode)
         val body = result.body as Map<*, *>
