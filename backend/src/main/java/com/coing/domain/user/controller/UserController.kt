@@ -233,10 +233,28 @@ class UserController(
         return ResponseEntity.ok(mapOf("status" to "success", "message" to "비밀번호가 재설정되었습니다."))
     }
 
-    @Operation(summary = "리다이렉트")
-    @GetMapping
-    fun redirectSocialLogin() {
-        // 별도 동작 없음
+    @Operation(summary = "소셜 로그인 후 토큰 발급")
+    @PostMapping("/social-login/redirect")
+    @ApiErrorCodeExamples(ErrorCode.EMPTY_TOKEN_PROVIDED)
+    fun redirectSocialLogin(
+        @RequestParam("tempToken") tempToken: String,
+        response: HttpServletResponse
+    ): ResponseEntity<Any> {
+        val token = "tempToken:$tempToken"
+
+        val userIdStr = authTokenService.getUserIdWithTempToken(token)
+        if (userIdStr == null) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(mapOf("status" to "error", "message" to "유효하지 않은 토큰입니다."))
+        }
+
+        val userId = UUID.fromString(userIdStr)
+        val userResponse = userService.findById(userId)
+
+        issuedToken(response, userResponse)
+        authTokenService.removeTempToken(token)
+
+        return ResponseEntity.ok(mapOf("status" to "success", "message" to "소셜 로그인 성공"))
     }
 
     private fun issuedToken(response: HttpServletResponse, user: UserResponse) {
