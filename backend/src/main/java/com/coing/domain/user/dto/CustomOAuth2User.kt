@@ -1,41 +1,19 @@
-package com.coing.domain.user.dto;
+package com.coing.domain.user.dto
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
+import com.coing.domain.user.entity.User
+import org.springframework.security.core.GrantedAuthority
+import org.springframework.security.core.authority.SimpleGrantedAuthority
+import org.springframework.security.oauth2.core.user.OAuth2User
 
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.oauth2.core.user.OAuth2User;
+class CustomOAuth2User(val user: User) : OAuth2User {
 
-import com.coing.domain.user.entity.User;
+    override fun getAttributes(): Map<String, Any>? = null
 
-import lombok.Getter;
+    override fun getAuthorities(): Collection<GrantedAuthority> {
+        val authorities: MutableList<GrantedAuthority> = ArrayList()
+        authorities.add(SimpleGrantedAuthority(user.authority!!.name))
+        return authorities
+    }
 
-@Getter
-public class CustomOAuth2User implements OAuth2User {
-
-	private final User user;
-
-	public CustomOAuth2User(User user) {
-		this.user = user;
-	}
-
-	@Override
-	public Map<String, Object> getAttributes() {
-		return null;
-	}
-
-	@Override
-	public Collection<? extends GrantedAuthority> getAuthorities() {
-		List<GrantedAuthority> authorities = new ArrayList<>();
-		authorities.add(new SimpleGrantedAuthority(user.getAuthority().name()));
-		return authorities;
-	}
-
-	@Override
-	public String getName() {
-		return user.getId().toString();
-	}
+    override fun getName(): String = user.id.toString()
 }
