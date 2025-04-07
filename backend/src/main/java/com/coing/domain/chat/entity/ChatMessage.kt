@@ -1,12 +1,14 @@
 package com.coing.domain.chat.entity
 
 import com.coing.domain.user.entity.User
+import com.coing.global.annotation.NoArg
 import com.coing.util.BaseEntity
 import jakarta.persistence.*
 import java.time.LocalDateTime
 
 @Entity
 @Table(name = "chat_messages")
+@NoArg
 open class ChatMessage(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -28,13 +30,4 @@ open class ChatMessage(
 
     // 메시지 전송 시간
     open var timestamp: LocalDateTime? = null
-) : BaseEntity() {
-    // JPA용 기본 생성자
-    constructor() : this(
-        id = null,
-        chatRoom = null,
-        sender = null,
-        content = "",
-        timestamp = null
-    )
-}
+) : BaseEntity()
