@@ -1,34 +1,31 @@
-package com.coing.domain.coin.candle.dto;
+package com.coing.domain.coin.candle.dto
 
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.coing.global.annotation.NoArg
+import com.fasterxml.jackson.annotation.JsonProperty
 
-import lombok.Getter;
-import lombok.Setter;
-
-@Getter
-@Setter
-public class CandleDto {
+@NoArg
+data class CandleDto(
 	@JsonProperty("market")
-	private String code;
+	var code: String? = null,
 
 	@JsonProperty("candle_date_time_utc")
-	private String candleDateTimeUtc;
+	var candleDateTimeUtc: String? = null,
 
 	@JsonProperty("opening_price")
-	private double open;
+	var open: Double = 0.0,
 
 	@JsonProperty("high_price")
-	private double high;
+	var high: Double = 0.0,
 
 	@JsonProperty("low_price")
-	private double low;
+	var low: Double = 0.0,
 
 	@JsonProperty("trade_price")
-	private double close;
+	var close: Double = 0.0,
 
 	@JsonProperty("candle_acc_trade_volume")
-	private double volume;
+	var volume: Double = 0.0,
 
 	@JsonProperty("timestamp")
-	private long timestamp;
-}
+	var timestamp: Long = 0L
+)
