@@ -243,10 +243,8 @@ class UserController(
         val token = "tempToken:$tempToken"
 
         val userIdStr = authTokenService.getUserIdWithTempToken(token)
-        if (userIdStr == null) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+            ?: return ResponseEntity.status(HttpStatus.FORBIDDEN)
                 .body(mapOf("status" to "error", "message" to "유효하지 않은 토큰입니다."))
-        }
 
         val userId = UUID.fromString(userIdStr)
         val userResponse = userService.findById(userId)

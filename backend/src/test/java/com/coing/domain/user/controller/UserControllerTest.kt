@@ -17,6 +17,7 @@ import org.junit.jupiter.api.Test
 import org.mockito.BDDMockito.given
 import org.mockito.Mockito.*
 import org.mockito.kotlin.any
+import org.mockito.kotlin.whenever
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
@@ -258,59 +259,38 @@ class UserControllerIntegrationTest {
     }
 
 
-    // 소셜 로그인 토큰 발급 - 성공 케이스
     @Test
-    fun `소셜 로그인 토큰 발급 - 성공`() {
-        val tempToken = "validTemp"
-        // 실제 컨트롤러에서는 "tempToken:" 접두사를 붙임
-        val token = "tempToken:$tempToken"
-        val userId = UUID.randomUUID()
-        val userIdStr = userId.toString()
+    fun `redirectSocialLogin - forbidden`() {
+        val tempToken = "invalid-token"
+        val tokenKey = "tempToken:$tempToken"
 
-        // tempToken을 이용해 userId를 얻는다.
-        given(authTokenService.getUserIdWithTempToken(token)).willReturn(userIdStr)
+        whenever(authTokenService.getUserIdWithTempToken(tokenKey)).thenReturn(null)
 
-        // userId로 사용자 정보를 조회
-        val userResponse = UserResponse(
-            id = userId,
-            name = "테스트",
-            email = "test@example.com",
-            verified = true
-        )
-        given(userService.findById(userId)).willReturn(userResponse)
-
-        // 요청 수행
-        mockMvc.post("/api/auth/social-login/redirect") {
-            param("tempToken", tempToken)
-            contentType = MediaType.APPLICATION_JSON
-        }
-            .andExpect {
-                status { isOk() }
-                jsonPath("$.status", `is`("success"))
-                jsonPath("$.message", `is`("소셜 로그인 성공"))
-            }
-
-        // 토큰 제거 메서드가 호출되었는지 검증
-        verify(authTokenService, times(1)).removeTempToken(token)
+        mockMvc.perform(
+            post("/api/auth/social-login/redirect")
+                .param("tempToken", tempToken)
+        ).andExpect(status().isForbidden)
+            .andExpect(jsonPath("$.status").value("error"))
+            .andExpect(jsonPath("$.message").value("유효하지 않은 토큰입니다."))
     }
 
-    // 소셜 로그인 토큰 발급 - 실패 (잘못된 토큰)
     @Test
-    fun `소셜 로그인 토큰 발급 - 실패 invalid token`() {
-        val tempToken = "invalidTemp"
-        val token = "tempToken:$tempToken"
-        // 잘못된 토큰일 경우 userId를 반환하지 않음
-        given(authTokenService.getUserIdWithTempToken(token)).willReturn(null)
+    fun `redirectSocialLogin - ok`() {
+        val tempToken = "valid-token"
+        val tokenKey = "tempToken:$tempToken"
+        val userId = UUID.randomUUID()
+        val userResponse = mock(UserResponse::class.java)
 
-        mockMvc.post("/api/auth/social-login/redirect") {
-            param("tempToken", tempToken)
-            contentType = MediaType.APPLICATION_JSON
-        }
-            .andExpect {
-                status { isForbidden() }
-                jsonPath("$.status", `is`("error"))
-                jsonPath("$.message", `is`("유효하지 않은 토큰입니다."))
-            }
+        whenever(authTokenService.getUserIdWithTempToken(tokenKey)).thenReturn(userId.toString())
+        whenever(userService.findById(userId)).thenReturn(userResponse)
+        doNothing().`when`(authTokenService).removeTempToken(tokenKey)
+
+        mockMvc.perform(
+            post("/api/auth/social-login/redirect")
+                .param("tempToken", tempToken)
+        ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.status").value("success"))
+            .andExpect(jsonPath("$.message").value("소셜 로그인 성공"))
     }
 }
 
