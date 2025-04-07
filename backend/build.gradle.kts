@@ -58,6 +58,7 @@ dependencies {
     compileOnly("javax.servlet:javax.servlet-api:4.0.1")
     testImplementation("org.mockito:mockito-core:4.6.1")
     testImplementation("org.mockito:mockito-junit-jupiter:4.6.1")
+    testImplementation("org.mockito.kotlin:mockito-kotlin:5.4.0")
     testImplementation("org.awaitility:awaitility:4.3.0")
     testImplementation("org.mockito.kotlin:mockito-kotlin:4.1.0")
 
