@@ -84,7 +84,7 @@ class UpbitWebSocketOrderbookHandlerTest {
     @DisplayName("handleBinaryMessage() Keepalive 메시지 무시")
     fun testHandleBinaryMessageIgnoresKeepalive() {
         // given: keepalive 메시지
-        val keepalivePayload = """{"status":"UP"}"""
+        val keepalivePayload = "{\"status\":\"UP\"}"
          val binaryMessage = BinaryMessage(ByteBuffer.wrap(keepalivePayload.toByteArray(StandardCharsets.UTF_8)))
 
         // when

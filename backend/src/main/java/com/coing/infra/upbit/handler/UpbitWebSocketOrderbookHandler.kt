@@ -60,7 +60,7 @@ class UpbitWebSocketOrderbookHandler(
     private fun processMessage(payload: String) {
         try {
             // keepalive 메시지인 경우 무시
-            if (payload == """{"status":"UP"}""") {
+            if ("{\"status\":\"UP\"}" == payload) {
                 log.debug("Received keepalive message: {}", payload)
                 return
             }

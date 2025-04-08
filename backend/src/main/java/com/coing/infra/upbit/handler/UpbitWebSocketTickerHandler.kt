@@ -35,7 +35,7 @@ class UpbitWebSocketTickerHandler(
 
     private fun processMessage(payload: String) {
         try {
-            if (payload == """{"status":"UP"}""") {
+            if ("{\"status\":\"UP\"}" == payload) {
                 log.debug("Received keepalive message: {}", payload)
                 return
             }
