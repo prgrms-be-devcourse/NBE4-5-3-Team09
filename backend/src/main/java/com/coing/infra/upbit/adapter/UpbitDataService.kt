@@ -4,7 +4,6 @@ import com.coing.domain.coin.common.port.DataHandler
 import com.coing.domain.coin.orderbook.entity.Orderbook
 import com.coing.domain.coin.ticker.entity.Ticker
 import com.coing.domain.coin.trade.entity.Trade
-import com.coing.domain.coin.trade.service.TradeService
 import com.coing.infra.upbit.dto.UpbitWebSocketOrderbookDto
 import com.coing.infra.upbit.dto.UpbitWebSocketTickerDto
 import com.coing.infra.upbit.dto.UpbitWebSocketTradeDto
