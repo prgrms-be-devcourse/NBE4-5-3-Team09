@@ -77,7 +77,7 @@ class UpbitWebSocketOrderbookHandlerTest {
         spyHandler.handleBinaryMessage(session, binaryMessage)
 
         // then
-        verify(upbitDataService).processOrderbookData(any<UpbitWebSocketOrderbookDto>())
+        verify(upbitDataService).handleOrderbookEvent(any<UpbitWebSocketOrderbookDto>())
     }
 
     @Test
@@ -91,7 +91,7 @@ class UpbitWebSocketOrderbookHandlerTest {
         handler.handleBinaryMessage(session, binaryMessage)
 
         // then
-        verify(upbitDataService, never()).processOrderbookData(any())
+        verify(upbitDataService, never()).handleOrderbookEvent(any())
     }
 
     @Test
@@ -105,6 +105,6 @@ class UpbitWebSocketOrderbookHandlerTest {
         handler.handleBinaryMessage(session, binaryMessage)
 
         // then
-        verify(upbitDataService, never()).processOrderbookData(any())
+        verify(upbitDataService, never()).handleOrderbookEvent(any())
     }
 }

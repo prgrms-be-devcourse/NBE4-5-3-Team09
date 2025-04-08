@@ -41,7 +41,7 @@ class UpbitWebSocketTickerHandler(
             }
 
             val tickerDto = objectMapper.readValue(payload, UpbitWebSocketTickerDto::class.java)
-            upbitDataService.processTickerData(tickerDto)
+            upbitDataService.handleTickerEvent(tickerDto)
         } catch (e: Exception) {
             log.error("Error processing ticker message: {}", payload, e)
         }

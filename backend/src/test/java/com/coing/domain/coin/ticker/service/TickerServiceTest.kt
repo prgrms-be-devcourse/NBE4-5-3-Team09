@@ -23,7 +23,6 @@ import org.mockito.Mockito.*
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.messaging.simp.SimpMessageSendingOperations
-import org.springframework.web.client.RestTemplate
 import java.lang.reflect.Field
 import java.time.LocalDate
 import java.time.LocalTime
@@ -33,9 +32,6 @@ class TickerServiceTest {
 
     @Mock
     private lateinit var simpMessageSendingOperations: SimpMessageSendingOperations
-
-    @Mock
-    private lateinit var restTemplate: RestTemplate
 
     @Mock
     private lateinit var messageUtil: MessageUtil
@@ -103,7 +99,7 @@ class TickerServiceTest {
     @DisplayName("getTicker 성공 - 존재하는 마켓 코드 조회")
     fun getTicker_Success() {
         `when`(marketService.getCachedMarketByCode(anyString())).thenReturn(testMarket)
-        tickerService.updateTicker(testTicker)
+        tickerService.update(testTicker)
 
         val result = tickerService.getTicker(testTicker.code)
 
@@ -127,7 +123,7 @@ class TickerServiceTest {
     @DisplayName("updateTicker 성공 - 캐시에 저장 확인")
     fun updateTicker() {
         `when`(marketService.getCachedMarketByCode(anyString())).thenReturn(testMarket)
-        tickerService.updateTicker(testTicker)
+        tickerService.update(testTicker)
 
         val cachedTicker = getTickerCache()[testTicker.code]
         assertNotNull(cachedTicker)
@@ -144,7 +140,7 @@ class TickerServiceTest {
     @DisplayName("publishCachedTickers 성공 - WebSocket을 통해 데이터 전송")
     fun publishCachedTickers() {
         `when`(marketService.getCachedMarketByCode(anyString())).thenReturn(testMarket)
-        tickerService.updateTicker(testTicker)
+        tickerService.update(testTicker)
         val dto = TickerDto.from(testTicker, testMarket)
 
         tickerService.publish(dto)

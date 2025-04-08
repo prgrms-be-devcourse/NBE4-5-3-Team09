@@ -65,7 +65,7 @@ class UpbitWebSocketOrderbookHandler(
                 return
             }
             val orderbookDto = objectMapper.readValue(payload, UpbitWebSocketOrderbookDto::class.java)
-            upbitDataService.processOrderbookData(orderbookDto)
+            upbitDataService.handleOrderbookEvent(orderbookDto)
         } catch (e: Exception) {
             log.error("Error processing message: {}", payload, e)
         }
