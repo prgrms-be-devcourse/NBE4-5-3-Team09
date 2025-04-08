@@ -1,5 +1,6 @@
 package com.coing.domain.coin.trade.service
 
+import com.coing.domain.coin.common.port.DataHandler
 import com.coing.domain.coin.trade.dto.TradeDto
 import com.coing.domain.coin.trade.entity.Trade
 import com.coing.global.exception.BusinessException
@@ -17,7 +18,7 @@ import java.util.concurrent.ConcurrentLinkedQueue
 class TradeService(
     private val simpMessageSendingOperations: SimpMessageSendingOperations,
     private val messageUtil: MessageUtil
-) {
+): DataHandler<Trade> {
 
     private val tradeListCache = ConcurrentHashMap<String, ConcurrentLinkedQueue<TradeDto>>()
     private val vwapCache = ConcurrentHashMap<String, Double>()
@@ -29,6 +30,31 @@ class TradeService(
     private val throttleIntervalMs = 200L
     private val maxListSize = 20
 
+    override fun update(data: Trade) {
+        val market = data.code
+        val price = data.tradePrice
+        val volume = data.tradeVolume
+
+        // 캐시 갱신
+        updateCaches(market, volume)
+
+        // 지표 계산
+        val vwap = calculateVWAP(market, price, volume)
+        val averageTradeSize = calculateAverageTradeSize(market)
+        val tradeImpact = calculateTradeImpact(market, price)
+
+        val dto = TradeDto.of(data, vwap, averageTradeSize, tradeImpact)
+
+        publish(dto)
+
+        tradeListCache.compute(market) { _, queue ->
+            val newQueue = queue ?:  ConcurrentLinkedQueue<TradeDto>()
+            newQueue.add(dto)
+            while (newQueue.size > maxListSize) newQueue.poll()
+            newQueue
+        }
+    }
+
     fun getTrades(market: String): List<TradeDto> {
         val queue = tradeListCache[market]
         if (queue.isNullOrEmpty()) {
@@ -38,30 +64,6 @@ class TradeService(
             )
         }
         return queue.toList()
-    }
-
-    fun updateTrade(trade: Trade) {
-        val market = trade.code
-        val price = trade.tradePrice
-        val volume = trade.tradeVolume
-
-        // 캐시 갱신
-        cacheValues(market, volume)
-
-        val vwap = calculateVWAP(market, price, volume)
-        val averageTradeSize = calculateAverageTradeSize(market)
-        val tradeImpact = calculateTradeImpact(market, price)
-
-        val dto = TradeDto.of(trade, vwap, averageTradeSize, tradeImpact)
-
-        publish(dto)
-
-        tradeListCache.compute(market) { _, queue ->
-            val newQueue = queue ?: ConcurrentLinkedQueue()
-            newQueue.add(dto)
-            while (newQueue.size > maxListSize) newQueue.poll()
-            newQueue
-        }
     }
 
     fun publish(dto: TradeDto) {
@@ -83,28 +85,40 @@ class TradeService(
         prevTradePriceCache.clear()
     }
 
-    private fun cacheValues(market: String, volume: Double) {
+    private fun updateCaches(market: String, volume: Double) {
         vwapCache.putIfAbsent(market, 0.0)
-        totalTradeVolumeCache.putIfAbsent(market, 0.0)
-        totalTradeNumberCache.putIfAbsent(market, 0.0)
         prevTradePriceCache.putIfAbsent(market, 0.0)
-
-        totalTradeVolumeCache[market] = totalTradeVolumeCache[market]!! + volume
-        totalTradeNumberCache[market] = totalTradeNumberCache[market]!! + 1
+        totalTradeVolumeCache.merge(market, volume) { old, new -> old + new }
+        totalTradeNumberCache.merge(market, 1.0) { old, new -> old + new }
     }
 
+    /**
+     * VWAP(Volume-Weighted Average Price) 체결가 가중 평균 가격 계산
+     */
     private fun calculateVWAP(market: String, price: Double, volume: Double): Double {
-        val prevVWAP = vwapCache[market] ?: 0.0
-        val totalVolume = totalTradeVolumeCache[market] ?: 0.0
-        return if (totalVolume == 0.0) 0.0 else ((prevVWAP * totalVolume) + (price * volume)) / (totalVolume + volume)
+        val newTotalVolume = totalTradeVolumeCache[market] ?: volume
+        val previousVolume = newTotalVolume - volume
+        val previousVWAP = if (previousVolume <= 0.0) price else (vwapCache[market] ?: price)
+
+        // VWAP = (이전 VWAP*이전 거래량 + 현재 거래가격*현재 거래량) / (이전 거래량 + 현재 거래량)
+        val newVWAP = ((previousVWAP * previousVolume) + (price * volume)) / newTotalVolume
+
+        vwapCache[market] = newVWAP
+        return newVWAP
     }
 
+    /**
+     * 평균 거래 크기 계산
+     */
     private fun calculateAverageTradeSize(market: String): Double {
         val totalVolume = totalTradeVolumeCache[market] ?: 0.0
         val totalNumber = totalTradeNumberCache[market] ?: 0.0
         return if (totalNumber == 0.0) 0.0 else totalVolume / totalNumber
     }
 
+    /**
+     * 거래 임팩트 계산
+     */
     private fun calculateTradeImpact(market: String, price: Double): Double {
         val prevPrice = prevTradePriceCache[market] ?: 0.0
         prevTradePriceCache[market] = price

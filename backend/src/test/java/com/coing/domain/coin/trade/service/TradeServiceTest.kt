@@ -61,7 +61,7 @@ class TradeServiceTest {
     @DisplayName("getTrades 성공 - 존재하는 체결 목록 조회")
     fun getTrades_Success() {
         // given
-        tradeService.updateTrade(trade)
+        tradeService.update(trade)
 
         // when
         val result = tradeService.getTrades(trade.code)

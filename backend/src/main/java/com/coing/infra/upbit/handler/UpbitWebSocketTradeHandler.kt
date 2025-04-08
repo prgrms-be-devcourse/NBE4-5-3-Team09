@@ -41,7 +41,7 @@ class UpbitWebSocketTradeHandler(
             }
 
             val tradeDto = objectMapper.readValue(payload, UpbitWebSocketTradeDto::class.java)
-            upbitDataService.processTradeData(tradeDto)
+            upbitDataService.handleTradeEvent(tradeDto)
 
         } catch (e: Exception) {
             log.error("Error processing message: {}", payload, e)
