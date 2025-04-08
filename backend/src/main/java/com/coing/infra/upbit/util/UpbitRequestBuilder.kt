@@ -19,7 +19,7 @@ class UpbitRequestBuilder(
 
     @Throws(JsonProcessingException::class)
     fun makeRequest(type: EnumUpbitRequestType): String {
-        val codes = marketCacheService.getCachedMarketMap().keys.stream().toList()
+        val codes = marketCacheService.getCachedMarketMap().keys.toList()
         val ticketDto = UpbitWebSocketTicketDto(
             ticket = type.value
         )

@@ -36,7 +36,7 @@ class UpbitWebSocketConnection(
         get() = _isConnected
 
     @Volatile
-    private var session: WebSocketSession? = null
+    private lateinit var session: WebSocketSession
     private var reconnectAttempts: Long = 0
     private val log = LoggerFactory.getLogger(this::class.java)
 
@@ -78,7 +78,7 @@ class UpbitWebSocketConnection(
      * 연결 실패 시 BASE_DELAY_SECONDS에 2^(reconnectAttempts)를 곱한 지연 후 재연결을 시도하며,
      * 최대 MAX_DELAY_SECONDS까지 지연 시간을 늘립니다.
      */
-    fun scheduleReconnect() {
+    private fun scheduleReconnect() {
         if (isReconnecting.compareAndSet(false, true)) {
             val delay = minOf(MAX_DELAY_SECONDS, BASE_DELAY_SECONDS * (1L shl reconnectAttempts.toInt()))
             log.info("[$name] Scheduling reconnection attempt in $delay seconds")
@@ -96,9 +96,9 @@ class UpbitWebSocketConnection(
      * Ping 메시지 전송
      */
     fun sendPing() {
-        if (isConnected && session?.isOpen == true) {
+        if (isConnected && session.isOpen) {
             try {
-                session?.sendMessage(PingMessage())
+                session.sendMessage(PingMessage())
                 log.info("[$name] Sent PING")
             } catch (e: Exception) {
                 log.error("[$name] Failed to send PING: ${e.message}", e)
