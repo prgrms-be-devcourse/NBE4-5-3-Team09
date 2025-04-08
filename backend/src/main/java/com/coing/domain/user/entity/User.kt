@@ -28,6 +28,7 @@ data class User(
     val password: String = "",
 
     // 권한 (값이 없을 경우 prePersist()에서 Authority.USER 로 설정)
+    @Enumerated(EnumType.STRING)
     @Column(name = "authority", nullable = false)
     var authority: Authority? = null,
 
@@ -43,7 +44,7 @@ data class User(
     @PrePersist
     fun prePersist() {
         if (authority == null) {
-            authority = Authority.USER
+            authority = Authority.ROLE_USER
         }
         // 가입 시각 기록 필드가 필요하다면 추가하세요.
         // if (createdAt == null) {
