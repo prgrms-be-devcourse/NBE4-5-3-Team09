@@ -10,6 +10,7 @@ import com.coing.domain.user.service.AuthTokenService
 import com.coing.domain.user.service.UserService
 import com.coing.domain.user.email.service.EmailVerificationService
 import com.coing.domain.user.email.service.PasswordResetService
+import com.coing.domain.user.entity.Authority
 import com.coing.util.MessageUtil
 import com.fasterxml.jackson.databind.ObjectMapper
 import kotlinx.coroutines.runBlocking
@@ -93,7 +94,8 @@ class UserControllerIntegrationTest {
             id = userId,
             name = "테스트",
             email = "integration@test.com",
-            verified = false
+            verified = false,
+            authority = Authority.ROLE_USER
         )
         val userEntity = User(
             id = userId,
@@ -186,7 +188,8 @@ class UserControllerIntegrationTest {
             id = UUID.randomUUID(),
             name = "테스트",
             email = "integration@test.com",
-            verified = true
+            verified = true,
+            authority = Authority.ROLE_USER
         )
         given(userService.login("integration@test.com", "pass1234!")).willReturn(userResponse)
 

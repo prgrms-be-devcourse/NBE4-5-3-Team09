@@ -2,8 +2,8 @@ package com.coing.domain.chat.service
 
 import com.coing.domain.chat.entity.ChatMessage
 import com.coing.domain.chat.entity.ChatRoom
-import com.coing.domain.chat.repository.ChatRoomRepository
 import com.coing.domain.chat.repository.ChatMessageRepository
+import com.coing.domain.chat.repository.ChatRoomRepository
 import com.coing.domain.coin.market.entity.Market
 import com.coing.domain.coin.market.service.MarketService
 import com.coing.domain.user.entity.User
@@ -15,12 +15,14 @@ import org.junit.jupiter.api.Test
 import org.mockito.kotlin.*
 import java.time.LocalDateTime
 import java.util.*
+import java.util.concurrent.CopyOnWriteArrayList
 
-internal class ChatServiceUnitTest {
+internal class ChatServiceTest {
 
     private lateinit var chatRoomRepository: ChatRoomRepository
     private lateinit var chatMessageRepository: ChatMessageRepository
     private lateinit var marketService: MarketService
+    // 캐시 타입: Cache<Long, List<ChatMessage>>
     private lateinit var chatMessageCache: Cache<Long, List<ChatMessage>>
     private lateinit var chatService: ChatService
 
@@ -30,6 +32,8 @@ internal class ChatServiceUnitTest {
         chatMessageRepository = mock()
         marketService = mock()
         chatMessageCache = mock()
+
+        // ChatService 생성자 변경됨: 4개의 의존성을 받음
         chatService = ChatService(chatRoomRepository, chatMessageRepository, marketService, chatMessageCache)
     }
 
@@ -42,7 +46,7 @@ internal class ChatServiceUnitTest {
 
         val result = chatService.getOrCreateChatRoomByMarketCode(marketCode)
         assertThat(result).isEqualTo(chatRoom)
-        verify(chatRoomRepository, never()).save(any())
+        verify(chatRoomRepository, times(0)).save(any())
     }
 
     @Test
@@ -74,7 +78,7 @@ internal class ChatServiceUnitTest {
         val market = Market(code = "KRW-BTC", koreanName = "비트코인", englishName = "Bitcoin")
         val chatRoom = ChatRoom(id = chatRoomId, market = market, name = "ChatRoom")
         whenever(chatRoomRepository.findById(chatRoomId)).thenReturn(Optional.of(chatRoom))
-        // 기존 캐시에 아무 메시지도 없다고 가정
+        // 캐시에 기존 메시지 없으므로 null 반환
         whenever(chatMessageCache.getIfPresent(chatRoomId)).thenReturn(null)
 
         val message = chatService.sendMessage(chatRoomId, sender, content)
@@ -82,17 +86,24 @@ internal class ChatServiceUnitTest {
         assertThat(message.sender).isEqualTo(sender)
         assertThat(message.content).isEqualTo(content)
 
-        // 캐시 업데이트 검증: 새로 생성된 리스트에 message가 포함되어 있는지 확인
-        verify(chatMessageCache, times(1)).put(eq(chatRoomId), argThat { this.contains(message) })
+        // 캐시 업데이트 검증: 새 리스트에 message가 포함되어 있어야 함
+        verify(chatMessageCache, times(1)).put(eq(chatRoomId), argThat { list -> list.contains(message) })
     }
 
     @Test
     fun `캐시에서 메시지 조회`() {
         val chatRoomId = 1L
         val messageList = listOf(
-            ChatMessage(id = 1L, chatRoom = null, sender = null, content = "Hi", timestamp = LocalDateTime.now())
+            ChatMessage(
+                id = 1L,
+                chatRoom = null,
+                sender = null,
+                content = "Hi",
+                timestamp = LocalDateTime.now()
+            )
         )
-        whenever(chatMessageCache.getIfPresent(chatRoomId)).thenReturn(messageList)
+        // 캐시 반환 타입은 List<ChatMessage>이므로, 현재 테스트에서는 변경 가능한 리스트라도 toList()를 통해 List로 맞춤
+        whenever(chatMessageCache.getIfPresent(chatRoomId)).thenReturn(messageList.toList())
 
         val result = chatService.getMessages(chatRoomId)
         assertThat(result).isEqualTo(messageList)
