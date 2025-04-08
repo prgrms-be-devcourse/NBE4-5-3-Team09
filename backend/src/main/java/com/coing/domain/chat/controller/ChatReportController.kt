@@ -5,6 +5,7 @@ import com.coing.domain.chat.service.ChatReportService
 import com.coing.domain.chat.service.ChatService
 import com.coing.domain.user.entity.User
 import com.coing.util.BasicResponse
+import io.swagger.v3.oas.annotations.Operation
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
@@ -26,6 +27,7 @@ class ChatReportController(
      * @param messageId 신고할 메시지의 ID
      * @param currentUser 현재 인증된 사용자 (신고자)
      */
+    @Operation(summary = "메세지 신고하기")
     @PostMapping("/{messageId}/report")
     fun reportMessage(
         @PathVariable messageId: Long,
