@@ -12,14 +12,14 @@ import jakarta.validation.constraints.NotEmpty
  */
 data class UpbitWebSocketTypeDto (
     @field:NotBlank
-    private val type:  String,
+    val type:  String,
 
     @field:NotEmpty
-    private val codes: List<String>,
+    val codes: List<String>,
 
     @JsonProperty("is_only_snapshot")
-    private val isOnlySnapshot: Boolean = false,
+    val isOnlySnapshot: Boolean = false,
 
     @JsonProperty("is_only_realtime")
-    private val isOnlyRealtime: Boolean = false
+    val isOnlyRealtime: Boolean = false
 )
