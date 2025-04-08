@@ -37,6 +37,21 @@ class OrderbookServiceTest {
     }
 
     @Test
+    @DisplayName("update 성공")
+    fun update() {
+        // given
+        val captor = argumentCaptor<OrderbookDto>()
+
+        // when
+        orderbookService.update(testOrderbook)
+
+        // then
+        verify(messagingTemplate, times(1))
+            .convertAndSend(eq("/sub/coin/orderbook/KRW-BTC"), captor.capture())
+        assertEquals("KRW-BTC", captor.firstValue.code)
+    }
+
+    @Test
     @DisplayName("publish 성공")
     fun publish() {
         // given
