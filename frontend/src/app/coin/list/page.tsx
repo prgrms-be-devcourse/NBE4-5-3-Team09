@@ -9,6 +9,7 @@ import { useAuth } from '@/context/AuthContext';
 
 import PaginationComponent from '@/components/Pagination';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { subscribeUserToPush } from '@/app/api/notification/route';
 
 export default function Page() {
   const [pagination, setPagination] = useState<PaginationDto>({
@@ -27,6 +28,20 @@ export default function Page() {
   const router = useRouter();
   const initialPage = Number(searchParams.get('page')) || 1;
   const [page, setPage] = useState(initialPage);
+
+  useEffect(() => {
+    if (!accessToken) return;
+
+    if (Notification.permission === 'granted') {
+      subscribeUserToPush(accessToken);
+    } else if (Notification.permission === 'default') {
+      Notification.requestPermission().then((permission) => {
+        if (permission === 'granted') {
+          subscribeUserToPush(accessToken);
+        }
+      });
+    }
+  }, [accessToken]);
 
   async function fetchMarkets() {
     try {
