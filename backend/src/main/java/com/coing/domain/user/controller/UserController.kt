@@ -264,7 +264,7 @@ class UserController(
 
     @Operation(summary = "소셜 로그인 후 탈퇴 처리")
     @PostMapping("/social-login/redirect/quit")
-    @ApiErrorCodeExamples(ErrorCode.EMPTY_TOKEN_PROVIDED)
+    @ApiErrorCodeExamples(ErrorCode.EMPTY_TOKEN_PROVIDED, ErrorCode.MEMBER_NOT_FOUND)
     fun redirectSocialQuit(
         @RequestParam("quitToken") quitToken: String,
         response: HttpServletResponse
