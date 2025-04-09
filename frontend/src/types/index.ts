@@ -130,12 +130,12 @@ export type OrderbookUnit = {
 
 export type CandleChartDto = {
   market: string;
-  candle_date_time_utc: string; // ISO8601 형식 문자열
-  opening_price: number;
-  high_price: number;
-  low_price: number;
-  trade_price: number;
-  candle_acc_trade_volume: number;
+  candleDateTimeUtc: string; // ISO8601 형식 문자열
+  openingPrice: number;
+  highPrice: number;
+  lowPrice: number;
+  tradePrice: number;
+  candleAccTradeVolume: number;
   timestamp: number;
 };
 

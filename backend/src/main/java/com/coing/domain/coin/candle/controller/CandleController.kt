@@ -1,14 +1,11 @@
 package com.coing.domain.coin.candle.controller
 
-import com.coing.domain.coin.candle.dto.CandleDto
+import com.coing.domain.coin.candle.controller.dto.CandleResponse
+import com.coing.domain.coin.candle.enums.EnumCandleType
 import com.coing.domain.coin.candle.service.UpbitCandleService
 import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.http.ResponseEntity
-import org.springframework.web.bind.annotation.GetMapping
-import org.springframework.web.bind.annotation.PathVariable
-import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.RequestParam
-import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.bind.annotation.*
 
 @Tag(name = "Candle API", description = "캔들 차트 관련 API 엔드포인트")
 @RestController
@@ -22,10 +19,11 @@ class CandleController(
     @GetMapping("/{market}/{type}")
     fun getCandles(
         @PathVariable("market") market: String,
-        @PathVariable("type") type: String,
+        @PathVariable("type") type: EnumCandleType,
         @RequestParam(value = "unit", required = false) unit: Int?
-    ): ResponseEntity<List<CandleDto>> {
+    ): ResponseEntity<List<CandleResponse>> {
         val candles = upbitCandleService.getLatestCandles(market, type, unit)
-        return ResponseEntity.ok(candles)
+        val response = candles.map { CandleResponse.from(it) }
+        return ResponseEntity.ok(response)
     }
 }

@@ -1,7 +1,7 @@
 package com.coing.domain.coin.ticker.dto
 
-data class TickersResponse(val tickers: List<TickerDto>) {
+data class TickerResponse(val ticker: TickerDto) {
     companion object {
-        fun from(tickers: List<TickerDto>): TickersResponse = TickersResponse(tickers)
+        fun from(ticker: TickerDto): TickerResponse = TickerResponse(ticker)
     }
 }

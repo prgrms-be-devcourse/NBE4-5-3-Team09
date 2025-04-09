@@ -1,33 +1,32 @@
 package com.coing.domain.coin.candle.service
 
-import com.coing.domain.coin.candle.dto.CandleDto
-import org.junit.jupiter.api.Assertions.*
+import com.coing.domain.coin.candle.entity.Candle
+import com.coing.domain.coin.candle.enums.EnumCandleType
+import com.coing.domain.coin.candle.port.CandleDataPort
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.mockito.Mockito.*
-import org.springframework.http.HttpStatus
-import org.springframework.http.ResponseEntity
-import org.springframework.web.client.RestTemplate
-import java.lang.reflect.Field
+import org.mockito.Mockito.mock
+import org.mockito.Mockito.`when`
 import java.time.Instant
 
 class UpbitCandleServiceUnitTest {
 
-    // RestTemplate을 목(mock)으로 대체하기 위한 헬퍼 함수
-    private fun setRestTemplate(service: UpbitCandleService, restTemplate: RestTemplate) {
-        val field: Field = UpbitCandleService::class.java.getDeclaredField("restTemplate")
-        field.isAccessible = true
-        field.set(service, restTemplate)
-    }
+	private lateinit var service: UpbitCandleService
+	private lateinit var candleDataPort: CandleDataPort
+
+	@BeforeEach
+	fun setUp() {
+		candleDataPort = mock(CandleDataPort::class.java)
+		service = UpbitCandleService(candleDataPort)
+	}
 
     @Test
     fun `캔들 데이터 정상 호출 - seconds`() {
-        val restTemplateMock = mock(RestTemplate::class.java)
-        val service = UpbitCandleService()
-        setRestTemplate(service, restTemplateMock)
-
         // 테스트용 캔들 데이터 배열 생성
         val testCandles = arrayOf(
-            CandleDto(
+            Candle(
                 code = "KRW-BTC",
                 candleDateTimeUtc = "2023-04-07T10:00:00Z",
                 open = 100.0,
@@ -37,7 +36,7 @@ class UpbitCandleServiceUnitTest {
                 volume = 1000.0,
                 timestamp = Instant.now().toEpochMilli()
             ),
-            CandleDto(
+            Candle(
                 code = "KRW-BTC",
                 candleDateTimeUtc = "2023-04-07T10:01:00Z",
                 open = 105.0,
@@ -49,47 +48,35 @@ class UpbitCandleServiceUnitTest {
             )
         )
 
-        val url = "https://api.upbit.com/v1/candles/seconds?market=KRW-BTC&count=200"
-        `when`(restTemplateMock.getForEntity(url, Array<CandleDto>::class.java))
-            .thenReturn(ResponseEntity(testCandles, HttpStatus.OK))
+        `when`(candleDataPort.fetchLatestCandles("KRW-BTC", EnumCandleType.seconds, null))
+            .thenReturn(testCandles.toList())
 
-        val result = service.getLatestCandles("KRW-BTC", "seconds", null)
-        assertEquals(testCandles[1].candleDateTimeUtc, result.first().candleDateTimeUtc)
+        // when
+        val result = service.getLatestCandles("KRW-BTC", EnumCandleType.seconds, null)
+
+        // then
         assertEquals(2, result.size)
-    }
-
-    @Test
-    fun `알 수 없는 캔들 타입 - 빈 리스트 반환`() {
-        val restTemplateMock = mock(RestTemplate::class.java)
-        val service = UpbitCandleService()
-        setRestTemplate(service, restTemplateMock)
-
-        val result = service.getLatestCandles("KRW-BTC", "unknown", null)
-        assertTrue(result.isEmpty())
+        assertEquals("2023-04-07T10:00:00Z", result[0].candleDateTimeUtc)
+        assertEquals("2023-04-07T10:01:00Z", result[1].candleDateTimeUtc)
     }
 
     @Test
     fun `API 호출 중 예외 발생 시 빈 리스트 반환`() {
-        val restTemplateMock = mock(RestTemplate::class.java)
-        val service = UpbitCandleService()
-        setRestTemplate(service, restTemplateMock)
-
-        val url = "https://api.upbit.com/v1/candles/seconds?market=KRW-BTC&count=200"
-        `when`(restTemplateMock.getForEntity(url, Array<CandleDto>::class.java))
+        // given
+        `when`(candleDataPort.fetchLatestCandles("KRW-BTC", EnumCandleType.seconds, null))
             .thenThrow(RuntimeException("API error"))
 
-        val result = service.getLatestCandles("KRW-BTC", "seconds", null)
+        // when
+        val result = service.getLatestCandles("KRW-BTC", EnumCandleType.seconds, null)
+
+        // then
         assertTrue(result.isEmpty())
     }
 
     @Test
     fun `분봉 캔들 데이터 정상 호출 - minutes`() {
-        val restTemplateMock = mock(RestTemplate::class.java)
-        val service = UpbitCandleService()
-        setRestTemplate(service, restTemplateMock)
-
         val testCandles = arrayOf(
-            CandleDto(
+            Candle(
                 code = "KRW-BTC",
                 candleDateTimeUtc = "2023-04-07T10:00:00Z",
                 open = 100.0,
@@ -99,7 +86,7 @@ class UpbitCandleServiceUnitTest {
                 volume = 1000.0,
                 timestamp = Instant.now().toEpochMilli()
             ),
-            CandleDto(
+            Candle(
                 code = "KRW-BTC",
                 candleDateTimeUtc = "2023-04-07T10:05:00Z",
                 open = 105.0,
@@ -110,12 +97,14 @@ class UpbitCandleServiceUnitTest {
                 timestamp = Instant.now().toEpochMilli()
             )
         )
-        val url = "https://api.upbit.com/v1/candles/minutes/5?market=KRW-BTC&count=200"
-        `when`(restTemplateMock.getForEntity(url, Array<CandleDto>::class.java))
-            .thenReturn(ResponseEntity(testCandles, HttpStatus.OK))
+        `when`(candleDataPort.fetchLatestCandles("KRW-BTC", EnumCandleType.minutes, 5))
+            .thenReturn(testCandles.toList())
 
-        val result = service.getLatestCandles("KRW-BTC", "minutes", 5)
+        // when
+        val result = service.getLatestCandles("KRW-BTC", EnumCandleType.minutes, 5)
+
+        // then
         assertEquals(2, result.size)
-        assertEquals(testCandles[1].candleDateTimeUtc, result.first().candleDateTimeUtc)
+        assertEquals(testCandles[0].candleDateTimeUtc, result[0].candleDateTimeUtc)
     }
 }
