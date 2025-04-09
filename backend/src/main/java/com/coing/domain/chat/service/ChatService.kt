@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
+import java.util.*
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.atomic.AtomicLong
 
@@ -45,16 +46,17 @@ class ChatService(
         val chatRoom = chatRoomRepository.findById(chatRoomId)
             .orElseThrow { RuntimeException("Chat room not found") }
 
-        // 새로운 ChatMessage 인스턴스 생성
+        // AtomicLong을 이용하여 "임시" ID 생성
+        val newId = UUID.randomUUID().toString()
         val message = ChatMessage(
-            id = messageIdSequence.getAndIncrement(),
+            id = newId,
             chatRoom = chatRoom,
             sender = sender,
             content = content,
             timestamp = LocalDateTime.now()
         )
 
-        // 캐시에 메시지 저장 (실시간 처리를 위해)
+        // 캐시에 메시지 저장
         val messages = chatMessageCache.getIfPresent(chatRoomId)?.toMutableList()
             ?: CopyOnWriteArrayList<ChatMessage>()
         messages.add(message)
@@ -72,14 +74,13 @@ class ChatService(
     // 신고 시 DB에 해당 메시지(신고 대상)를 바로 영구 저장하는 로직
     @Transactional
     fun persistReportedMessage(chatMessage: ChatMessage): ChatMessage {
-        // 신고된 메시지를 DB에 저장
+        // DB 저장: 만약 DB에 같은 id가 없다면 INSERT, 있으면 UPDATE로 동작
         val persistedMessage = chatMessageRepository.save(chatMessage)
         log.info("Persisted reported message {} for chat room {}", persistedMessage.id, chatMessage.chatRoom?.id)
 
-        // 캐시에 저장되어 있다면, 해당 메시지를 제거하여 중복 저장을 방지합니다.
+        // 캐시에서 제거 or 상태 업데이트
         chatMessage.chatRoom?.id?.let { roomId ->
             chatMessageCache.getIfPresent(roomId)?.let { currentMessages ->
-                // List가 불변일 수 있으므로, 변경 가능한 리스트로 변환 후 삭제
                 val mutableMessages = currentMessages.toMutableList()
                 val removed = mutableMessages.removeIf { it.id == chatMessage.id }
                 if (removed) {
@@ -92,7 +93,7 @@ class ChatService(
     }
 
     @Transactional(readOnly = true)
-    fun findMessageById(messageId: Long): ChatMessage? {
+    fun findMessageById(messageId: String): ChatMessage? {
         // 우선 캐시에서 찾고, 없으면 DB에서 조회
         chatMessageCache.asMap().values.forEach { messages ->
             messages.find { it.id == messageId }?.let { return it }

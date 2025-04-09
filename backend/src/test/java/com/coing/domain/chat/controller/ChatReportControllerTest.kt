@@ -6,6 +6,8 @@ import com.coing.domain.chat.service.ChatService
 import com.coing.domain.user.entity.Authority
 import com.coing.domain.user.entity.Provider
 import com.coing.domain.user.entity.User
+import com.coing.domain.user.dto.CustomUserPrincipal
+import com.coing.domain.user.repository.UserRepository
 import com.coing.util.BasicResponse
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.junit.jupiter.api.Test
@@ -15,14 +17,14 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest
 import org.springframework.boot.test.mock.mockito.MockBean
 import org.springframework.data.jpa.mapping.JpaMetamodelMappingContext
-import org.springframework.http.MediaType
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
-import org.springframework.test.web.servlet.result.MockMvcResultMatchers.*
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import java.util.*
 
 @WebMvcTest(ChatReportController::class)
@@ -41,10 +43,13 @@ class ChatReportControllerTest {
     @MockBean
     lateinit var chatReportService: ChatReportService
 
-    // 테스트에서 사용할 도메인 User를 하나 생성하고 재사용합니다.
+    @MockBean
+    lateinit var userRepository: UserRepository
+
+    // 테스트에서 사용할 User 생성 (id 타입은 UUID)
     private fun createDummyUser(): User {
         return User(
-            id = UUID.randomUUID(),
+            id = UUID.randomUUID(), // UUID 객체 그대로 사용
             name = "TestUser",
             email = "test@example.com",
             password = "encodedPassword",
@@ -54,21 +59,22 @@ class ChatReportControllerTest {
         )
     }
 
-    // 생성한 User 객체를 기반으로 인증 객체를 생성합니다.
+    // User를 바탕으로 CustomUserPrincipal을 생성하여 인증객체로 사용
     private fun createAuthentication(user: User): UsernamePasswordAuthenticationToken {
-        return UsernamePasswordAuthenticationToken(
-            user,
-            "password",
-            listOf(SimpleGrantedAuthority("USER"))
-        )
+        // CustomUserPrincipal 생성 시 UUID (non-null)와 권한 목록을 전달합니다.
+        val principal = CustomUserPrincipal(user.id!!, listOf(SimpleGrantedAuthority("ROLE_USER")))
+        return UsernamePasswordAuthenticationToken(principal, "password", listOf(SimpleGrantedAuthority("ROLE_USER")))
     }
 
     @Test
     fun `신고 API - 메시지 없음 - 404 반환`() {
-        `when`(chatService.findMessageById(1L)).thenReturn(null)
+        // 메시지 id는 String 타입 ("1")
+        `when`(chatService.findMessageById("1")).thenReturn(null)
 
-        // 별도 User 객체는 사용하지 않아도 되며, 여기서는 임의 인증 객체 생성
         val dummyUser = createDummyUser()
+        // 인증된 사용자 조회를 위한 stub 설정
+        `when`(userRepository.findById(dummyUser.id!!)).thenReturn(Optional.of(dummyUser))
+
         val auth = createAuthentication(dummyUser)
 
         mockMvc.perform(
@@ -82,20 +88,23 @@ class ChatReportControllerTest {
 
     @Test
     fun `신고 API - 신고 성공 - OK 반환`() {
-        // 신고 성공 케이스도 동일한 User 객체를 사용합니다.
         val userEntity = createDummyUser()
+        // 인증된 사용자 조회를 위한 stub 설정
+        `when`(userRepository.findById(userEntity.id!!)).thenReturn(Optional.of(userEntity))
+
         val auth = createAuthentication(userEntity)
 
+        // 신고할 메시지 생성, id는 "1" (String 타입)
         val chatMessage = ChatMessage(
-            id = 1L,
+            id = "1",
             chatRoom = null, // 테스트에서는 채팅방 정보는 불필요
-            sender = userEntity,  // 여기서 동일한 userEntity 사용
+            sender = userEntity, // 작성자가 동일한 사용자
             content = "Hello, world!",
             timestamp = null
         )
 
-        `when`(chatService.findMessageById(1L)).thenReturn(chatMessage)
-        // 신고 성공 시 리턴값은 사용하지 않으므로 null 반환 (또는 실제 ChatMessageReport 인스턴스 가능)
+        `when`(chatService.findMessageById("1")).thenReturn(chatMessage)
+        // 신고 성공 시 리턴값은 실제 신고 레코드가 있거나 null로 처리
         `when`(chatReportService.reportMessage(chatMessage, userEntity)).thenReturn(null)
 
         mockMvc.perform(
@@ -109,19 +118,22 @@ class ChatReportControllerTest {
 
     @Test
     fun `신고 API - 신고 중복 등 예외 발생 - 400 반환`() {
-        // 신고 중복 예외 발생 케이스에서도 동일한 User 객체 사용
         val userEntity = createDummyUser()
+        // 인증된 사용자 조회를 위한 stub 설정
+        `when`(userRepository.findById(userEntity.id!!)).thenReturn(Optional.of(userEntity))
+
         val auth = createAuthentication(userEntity)
 
         val chatMessage = ChatMessage(
-            id = 1L,
+            id = "1",
             chatRoom = null,
-            sender = userEntity,  // 동일한 userEntity
+            sender = userEntity,
             content = "Hello, world!",
             timestamp = null
         )
 
-        `when`(chatService.findMessageById(1L)).thenReturn(chatMessage)
+        `when`(chatService.findMessageById("1")).thenReturn(chatMessage)
+        // 신고 중복 등으로 인한 예외 발생 처리
         `when`(chatReportService.reportMessage(chatMessage, userEntity))
             .thenThrow(RuntimeException("이미 신고한 메시지입니다."))
 

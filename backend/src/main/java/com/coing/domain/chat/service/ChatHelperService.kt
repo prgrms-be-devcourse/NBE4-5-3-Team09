@@ -46,6 +46,7 @@ class ChatHelperService(
      */
     fun convertToDto(chatMessage: ChatMessage): ChatMessageDto {
         return ChatMessageDto(
+            id = chatMessage.id,
             sender = chatMessage.sender?.name ?: "",
             content = chatMessage.content,
             timestamp = chatMessage.timestamp?.toInstant(ZoneOffset.UTC)?.toEpochMilli()?.toString() ?: ""

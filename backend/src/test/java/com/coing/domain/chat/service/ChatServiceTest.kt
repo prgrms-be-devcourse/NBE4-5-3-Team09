@@ -7,7 +7,6 @@ import com.coing.domain.chat.repository.ChatRoomRepository
 import com.coing.domain.coin.market.entity.Market
 import com.coing.domain.coin.market.service.MarketService
 import com.coing.domain.user.entity.User
-import com.coing.domain.user.entity.Provider
 import com.github.benmanes.caffeine.cache.Cache
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
@@ -22,7 +21,7 @@ internal class ChatServiceTest {
     private lateinit var chatRoomRepository: ChatRoomRepository
     private lateinit var chatMessageRepository: ChatMessageRepository
     private lateinit var marketService: MarketService
-    // 캐시 타입: Cache<Long, List<ChatMessage>>
+    // 캐시 타입: Cache<Long, List<ChatMessage>> (채팅방 ID는 여전히 Long으로 관리)
     private lateinit var chatMessageCache: Cache<Long, List<ChatMessage>>
     private lateinit var chatService: ChatService
 
@@ -33,7 +32,7 @@ internal class ChatServiceTest {
         marketService = mock()
         chatMessageCache = mock()
 
-        // ChatService 생성자 변경됨: 4개의 의존성을 받음
+        // ChatService 생성자: 4개의 의존성을 받음
         chatService = ChatService(chatRoomRepository, chatMessageRepository, marketService, chatMessageCache)
     }
 
@@ -67,11 +66,12 @@ internal class ChatServiceTest {
     fun `메시지 전송 시 캐시에 메시지 저장`() {
         val chatRoomId = 1L
         val sender = User(
+            // id를 UUID 객체를 String으로 변환
             id = UUID.randomUUID(),
             name = "Alice",
             email = "alice@example.com",
             password = "encoded",
-            provider = Provider.EMAIL,
+            provider = com.coing.domain.user.entity.Provider.EMAIL,
             verified = true
         )
         val content = "Hello"
@@ -95,14 +95,13 @@ internal class ChatServiceTest {
         val chatRoomId = 1L
         val messageList = listOf(
             ChatMessage(
-                id = 1L,
+                id = "1", // id를 String 값으로 설정
                 chatRoom = null,
                 sender = null,
                 content = "Hi",
                 timestamp = LocalDateTime.now()
             )
         )
-        // 캐시 반환 타입은 List<ChatMessage>이므로, 현재 테스트에서는 변경 가능한 리스트라도 toList()를 통해 List로 맞춤
         whenever(chatMessageCache.getIfPresent(chatRoomId)).thenReturn(messageList.toList())
 
         val result = chatService.getMessages(chatRoomId)

@@ -51,14 +51,8 @@ class UserController(
     ): ResponseEntity<UserSignupResponse> {
         // 가입 처리를 진행하고 DTO를 반환받음
         val user: UserResponse = userService.join(request)
-        // 가입된 사용자의 실제 User 엔티티를 조회합니다.
-        val userEntity: User = userRepository.findById(user.id).orElseThrow {
-            BusinessException(messageUtil.resolveMessage("member.not.found"), HttpStatus.BAD_REQUEST, "")
-        }
-        // 전역 emailScope를 통해 이메일 전송 작업을 백그라운드에서 실행합니다.
-        emailScope.launch {
-            emailVerificationService.sendVerificationEmail(userEntity)
-        }
+        // (중요) 여기서 더 이상 이메일 전송 호출 없음
+
         val signupResponse = UserSignupResponse(
             message = "회원가입 성공. 인증 이메일 전송 요청되었습니다.",
             name = user.name,

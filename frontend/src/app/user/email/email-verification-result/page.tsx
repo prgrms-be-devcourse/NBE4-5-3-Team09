@@ -29,7 +29,7 @@ export default function EmailVerificationPage() {
             router.push('/user/login?verified=true');
           }, 2000);
         } else if (data.status === 'already') {
-          setMessage('이미 인증된 사용자입니다. 로그인 페이지로 이동합니다...');
+          setMessage('이메일 인증이 완료되었습니다. 로그인 페이지로 이동합니다...');
           setTimeout(() => {
             router.push('/user/login');
           }, 2000);

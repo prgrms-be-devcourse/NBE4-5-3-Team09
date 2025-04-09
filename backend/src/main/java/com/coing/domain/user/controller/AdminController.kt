@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 
 @RestController
@@ -30,7 +31,7 @@ class AdminController(
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     @GetMapping("/reported-messages")
     fun getReportedMessages(): ResponseEntity<List<ChatMessageReportDto>> {
-        val reportedMessages = chatReportService.getReportedMessages(3)
+        val reportedMessages = chatReportService.getReportedMessages()
         return ResponseEntity.ok(reportedMessages)
     }
 }

@@ -39,6 +39,7 @@ class ChatController(
         // 엔티티를 DTO로 변환하여 반환
         val dtos: List<ChatMessageDto> = recentMessages.map { message ->
             ChatMessageDto(
+                id = message.id,
                 sender = message.sender?.name ?: "",
                 content = message.content,
                 timestamp = message.timestamp?.toInstant(ZoneOffset.UTC)?.toEpochMilli()?.toString() ?: ""
