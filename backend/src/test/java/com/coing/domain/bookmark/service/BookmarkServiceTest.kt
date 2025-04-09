@@ -6,7 +6,7 @@ import com.coing.domain.bookmark.repository.BookmarkRepository
 import com.coing.domain.coin.market.entity.Market
 import com.coing.domain.coin.market.repository.MarketRepository
 import com.coing.domain.user.dto.CustomUserPrincipal
-import com.coing.domain.user.entity.Authority.USER
+import com.coing.domain.user.entity.Authority
 import com.coing.domain.user.entity.Provider.EMAIL
 import com.coing.domain.user.entity.User
 import com.coing.domain.user.repository.UserRepository
@@ -126,7 +126,7 @@ class BookmarkServiceTest {
             name = name,
             email = email,
             password = "1234",
-            authority = USER,
+            authority = Authority.ROLE_USER,
             verified = true,
             provider = EMAIL
         )

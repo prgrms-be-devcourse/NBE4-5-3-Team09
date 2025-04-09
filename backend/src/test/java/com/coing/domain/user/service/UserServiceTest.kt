@@ -72,7 +72,7 @@ internal class UserControllerTest {
     @DisplayName("회원가입 - 성공")
     fun testSignUpSuccess() = runBlocking {
         val signupRequest = UserSignUpRequest("테스트", "test@test.com", "pass1234!", "pass1234!")
-        val userResponse = UserResponse(UUID.randomUUID(), "테스트", "test@test.com", false)
+        val userResponse = UserResponse(UUID.randomUUID(), "테스트", "test@test.com", false, Authority.ROLE_USER)
         `when`(userService.join(signupRequest)).thenReturn(userResponse)
 
         // userService.join() 후, 실제 User 엔티티를 반환하도록 stub 설정
@@ -107,7 +107,7 @@ internal class UserControllerTest {
     fun testVerifyEmailAlreadyVerified() {
         val userId = UUID.randomUUID()
         `when`(authTokenService.parseId("validToken")).thenReturn(userId)
-        val user = User(userId, "테스트", "test@test.com", "dummy", Authority.USER, true)
+        val user = User(userId, "테스트", "test@test.com", "dummy", Authority.ROLE_USER, true)
         `when`(userRepository.findById(userId)).thenReturn(Optional.of(user))
 
         val result: ResponseEntity<*> = userController.verifyEmail("validToken")
@@ -196,7 +196,7 @@ internal class UserControllerTest {
     fun testLoginSuccess() {
         val email = "test@test.com"
         val password = "pass1234!"
-        val userResponse = UserResponse(UUID.randomUUID(), "테스트", email, true)
+        val userResponse = UserResponse(UUID.randomUUID(), "테스트", email,true,  Authority.ROLE_USER)
         `when`(userService.login(email, password)).thenReturn(userResponse)
         doNothing().`when`(response).setHeader(anyString(), anyString())
         val result: ResponseEntity<*> = userController.login(UserLoginRequest(email, password), response)
@@ -214,7 +214,7 @@ internal class UserControllerTest {
         val userId = UUID.randomUUID()
         val claims = mapOf("id" to userId.toString())
         `when`(authTokenService.verifyToken(refreshToken)).thenReturn(claims)
-        val userResponse = UserResponse(userId, "테스트", "test@test.com", true)
+        val userResponse = UserResponse(userId, "테스트", "test@test.com",true, Authority.ROLE_USER)
         `when`(userService.findById(userId)).thenReturn(userResponse)
         doNothing().`when`(response).setHeader(anyString(), anyString())
         val result: ResponseEntity<*> = userController.refreshToken(request, response)
@@ -248,7 +248,7 @@ internal class UserControllerTest {
     @DisplayName("회원 정보 조회 - 성공")
     fun testGetUserInfoSuccess() {
         val principal = CustomUserPrincipal(UUID.randomUUID())
-        val userResponse = UserResponse(principal.id, "테스트", "test@test.com", true)
+        val userResponse = UserResponse(principal.id, "테스트", "test@test.com",true, Authority.ROLE_USER)
         `when`(userService.findById(principal.id)).thenReturn(userResponse)
         val result = userController.getUserInfo(principal) as? ResponseEntity<UserResponse>
             ?: throw IllegalStateException("Expected ResponseEntity<UserResponse>")

@@ -40,7 +40,11 @@ class SecurityConfig(
 			.csrf(AbstractHttpConfigurer<*, *>::disable)
 			.headers { it.frameOptions { frameOptions -> frameOptions.disable() } }
 			.sessionManagement { it.sessionCreationPolicy(SessionCreationPolicy.STATELESS) }
-			.authorizeHttpRequests { it.anyRequest().permitAll() }
+			.authorizeHttpRequests { auth ->
+				auth
+					.requestMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")
+				    .anyRequest().permitAll()
+			}
 			.exceptionHandling { it.authenticationEntryPoint(customAuthenticationEntryPoint) }
 			.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter::class.java)
 			.oauth2Login { oauth2 ->

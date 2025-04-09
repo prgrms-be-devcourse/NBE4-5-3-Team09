@@ -29,7 +29,7 @@ class AuthTokenService {
     fun genAccessToken(userResponse: UserResponse): String {
         val claims: MutableMap<String, Any> = HashMap()
         claims["id"] = userResponse.id
-        // claims["authority"] = userResponse.authority // 나중에 권한 관련 추가
+        claims["authority"] = userResponse.authority
         val token = Ut.Jwt.createToken(jwtSecretKey, jwtExpireSeconds, claims)
         log.info("JWT 액세스 토큰 생성: {}", userResponse.email)
         return token
@@ -39,6 +39,7 @@ class AuthTokenService {
     fun genRefreshToken(userResponse: UserResponse): String {
         val claims: MutableMap<String, Any> = HashMap()
         claims["id"] = userResponse.id
+        claims["authority"] = userResponse.authority
         val token = Ut.Jwt.createToken(jwtSecretKey, jwtRefreshExpireSeconds, claims)
         log.info("JWT 리프레시 토큰 생성: {}", userResponse.email)
         return token
