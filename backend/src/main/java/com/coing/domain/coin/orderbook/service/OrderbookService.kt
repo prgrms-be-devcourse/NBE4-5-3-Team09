@@ -1,17 +1,17 @@
 package com.coing.domain.coin.orderbook.service;
 
 import com.coing.domain.coin.common.port.CoinDataHandler
+import com.coing.domain.coin.common.port.EventPublisher
 import com.coing.domain.coin.orderbook.dto.OrderbookDto
 import com.coing.domain.coin.orderbook.entity.Orderbook
 import org.slf4j.LoggerFactory
-import org.springframework.messaging.simp.SimpMessageSendingOperations
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
 import java.util.concurrent.ConcurrentHashMap
 
 @Service
 class OrderbookService(
-	private val messagingTemplate: SimpMessageSendingOperations
+    private val eventPublisher: EventPublisher<OrderbookDto>
 	) : CoinDataHandler<Orderbook> {
 
 	private val orderbookCache: MutableMap<String, OrderbookDto> = ConcurrentHashMap()
@@ -29,7 +29,7 @@ class OrderbookService(
 		val lastSent = lastSentTime.getOrDefault(market, 0L)
 
 		if (now - lastSent >= THROTTLE_INTERVAL_MS) {
-			messagingTemplate.convertAndSend("/sub/coin/orderbook/$market", dto)
+			eventPublisher.publish(dto)
 			lastSentTime[market] = now
 		}
 	}

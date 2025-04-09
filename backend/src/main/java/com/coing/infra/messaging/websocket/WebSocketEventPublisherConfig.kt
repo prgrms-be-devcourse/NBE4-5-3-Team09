@@ -1,4 +1,4 @@
-package com.coing.infra.messaging.websocket.config
+package com.coing.infra.messaging.websocket
 
 import com.coing.domain.coin.common.port.EventPublisher
 import com.coing.domain.coin.orderbook.dto.OrderbookDto

@@ -2,6 +2,7 @@ package com.coing.domain.coin.ticker.service
 
 import com.coing.domain.coin.common.enums.AskBid
 import com.coing.domain.coin.common.enums.Change
+import com.coing.domain.coin.common.port.EventPublisher
 import com.coing.domain.coin.market.entity.Market
 import com.coing.domain.coin.market.service.MarketService
 import com.coing.domain.coin.ticker.dto.TickerDto
@@ -10,19 +11,16 @@ import com.coing.domain.coin.ticker.entity.enums.MarketState
 import com.coing.domain.coin.ticker.entity.enums.MarketWarning
 import com.coing.global.exception.BusinessException
 import com.coing.util.MessageUtil
-import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
-import org.mockito.ArgumentCaptor
 import org.mockito.InjectMocks
 import org.mockito.Mock
 import org.mockito.Mockito.*
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.messaging.simp.SimpMessageSendingOperations
 import java.lang.reflect.Field
 import java.time.LocalDate
 import java.time.LocalTime
@@ -31,7 +29,7 @@ import java.time.LocalTime
 class TickerServiceTest {
 
     @Mock
-    private lateinit var simpMessageSendingOperations: SimpMessageSendingOperations
+    private lateinit var tickerPublisher: EventPublisher<TickerDto>
 
     @Mock
     private lateinit var messageUtil: MessageUtil
@@ -145,15 +143,7 @@ class TickerServiceTest {
 
         tickerService.publish(dto)
 
-        val captor = ArgumentCaptor.forClass(TickerDto::class.java)
-        verify(simpMessageSendingOperations, times(1))
-            .convertAndSend(eq("/sub/coin/ticker/KRW-BTC"), captor.capture())
-
-        val sentDto = captor.value
-        val actualValue = mapper.writeValueAsString(sentDto)
-        val jsonNode: JsonNode = mapper.readTree(actualValue)
-
-        assertEquals("ticker", jsonNode["type"].asText())
-        assertEquals("KRW-BTC", jsonNode["code"].asText())
+        verify(tickerPublisher, times(1))
+            .publish(dto)
     }
 }

@@ -1,13 +1,13 @@
 package com.coing.domain.coin.ticker.service
 
 import com.coing.domain.coin.common.port.CoinDataHandler
+import com.coing.domain.coin.common.port.EventPublisher
 import com.coing.domain.coin.market.service.MarketService
 import com.coing.domain.coin.ticker.dto.TickerDto
 import com.coing.domain.coin.ticker.entity.Ticker
 import com.coing.global.exception.BusinessException
 import com.coing.util.MessageUtil
 import org.springframework.http.HttpStatus
-import org.springframework.messaging.simp.SimpMessageSendingOperations
 import org.springframework.stereotype.Service
 import java.util.concurrent.ConcurrentHashMap
 
@@ -15,7 +15,7 @@ import java.util.concurrent.ConcurrentHashMap
 class TickerService(
     private val messageUtil: MessageUtil,
     private val marketService: MarketService,
-    private val messagingTemplate: SimpMessageSendingOperations,
+    private val eventPublisher: EventPublisher<TickerDto>
 ) : CoinDataHandler<Ticker> {
     private val tickerCache = ConcurrentHashMap<String, TickerDto>()
     private val lastSentTime = ConcurrentHashMap<String, Long>()
@@ -44,7 +44,7 @@ class TickerService(
         val lastSent = lastSentTime[market] ?: 0L
 
         if (now - lastSent >= throttleIntervalMs) {
-            messagingTemplate.convertAndSend("/sub/coin/ticker/$market", dto)
+            eventPublisher.publish(dto)
             lastSentTime[market] = now
         }
     }

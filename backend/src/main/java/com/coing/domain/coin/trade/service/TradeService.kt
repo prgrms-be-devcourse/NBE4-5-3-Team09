@@ -1,13 +1,13 @@
 package com.coing.domain.coin.trade.service
 
 import com.coing.domain.coin.common.port.CoinDataHandler
+import com.coing.domain.coin.common.port.EventPublisher
 import com.coing.domain.coin.trade.dto.TradeDto
 import com.coing.domain.coin.trade.entity.Trade
 import com.coing.global.exception.BusinessException
 import com.coing.util.MessageUtil
 import lombok.extern.slf4j.Slf4j
 import org.springframework.http.HttpStatus
-import org.springframework.messaging.simp.SimpMessageSendingOperations
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
 import java.util.concurrent.ConcurrentHashMap
@@ -16,7 +16,7 @@ import java.util.concurrent.ConcurrentLinkedQueue
 @Service
 @Slf4j
 class TradeService(
-    private val simpMessageSendingOperations: SimpMessageSendingOperations,
+    private val eventPublisher: EventPublisher<TradeDto>,
     private val messageUtil: MessageUtil
 ): CoinDataHandler<Trade> {
 
@@ -72,7 +72,7 @@ class TradeService(
         val lastSent = lastSentTime[market] ?: 0L
 
         if (now - lastSent >= throttleIntervalMs) {
-            simpMessageSendingOperations.convertAndSend("/sub/coin/trade/$market", dto)
+            eventPublisher.publish(dto)
             lastSentTime[market] = now
         }
     }
