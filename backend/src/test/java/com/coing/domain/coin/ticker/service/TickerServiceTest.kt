@@ -9,23 +9,26 @@ import com.coing.domain.coin.ticker.dto.TickerDto
 import com.coing.domain.coin.ticker.entity.Ticker
 import com.coing.domain.coin.ticker.entity.enums.MarketState
 import com.coing.domain.coin.ticker.entity.enums.MarketWarning
+import com.coing.domain.notification.service.PushService
 import com.coing.global.exception.BusinessException
 import com.coing.util.MessageUtil
 import com.fasterxml.jackson.databind.ObjectMapper
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runTest
+import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.*
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.DisplayName
-import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.InjectMocks
 import org.mockito.Mock
 import org.mockito.Mockito.*
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.context.SpringBootTest
+import org.mockito.junit.jupiter.MockitoExtension
 import java.lang.reflect.Field
+import java.time.Instant
 import java.time.LocalDate
-import java.time.LocalTime
+import java.time.ZoneId
+import java.util.*
 
-@SpringBootTest
+@ExtendWith(MockitoExtension::class)
 class TickerServiceTest {
 
     @Mock
@@ -34,29 +37,58 @@ class TickerServiceTest {
     @Mock
     private lateinit var messageUtil: MessageUtil
 
+    @Mock
+    private lateinit var marketService: MarketService
+
+    @Mock
+    private lateinit var pushService: PushService
+
     @InjectMocks
     private lateinit var tickerService: TickerService
 
     @Mock
-    private lateinit var marketService: MarketService
-
-    @Autowired
     private lateinit var mapper: ObjectMapper
 
     private lateinit var testTicker: Ticker
+    private lateinit var oldTestTicker: Ticker
     private lateinit var testMarket: Market
 
     @BeforeEach
     fun setUp() {
-        val tradeDate = LocalDate.now()
-        val tradeTime = LocalTime.now()
-        testTicker = Ticker(
+        mapper = ObjectMapper()
+        val now = System.currentTimeMillis()
+        oldTestTicker = getTestTicker(100.0, now - 61_000)
+        testTicker = getTestTicker(105.0, now)
+        testMarket = getTestMarket()
+    }
+
+    @AfterEach
+    fun clearThrottleCache() {
+        val field = TickerService::class.java.getDeclaredField("lastPushSentTime")
+        field.isAccessible = true
+        val map = field.get(tickerService) as MutableMap<*, *>
+        map.clear()
+    }
+
+    private fun getTestMarket(): Market {
+        return Market(
+            code = "KRW-BTC",
+            koreanName = "비트코인",
+            englishName = "Bitcoin"
+        )
+    }
+
+    private fun getTestTicker(tradePrice: Double, timestamp: Long): Ticker {
+        val tradeDate = Instant.ofEpochMilli(timestamp).atZone(ZoneId.systemDefault()).toLocalDate()
+        val tradeTime = Instant.ofEpochMilli(timestamp).atZone(ZoneId.systemDefault()).toLocalTime()
+
+        return Ticker(
             type = "ticker",
             code = "KRW-BTC",
             openingPrice = 100.0,
             highPrice = 120.0,
             lowPrice = 90.0,
-            tradePrice = 110.0,
+            tradePrice = tradePrice,
             prevClosingPrice = 105.0,
             change = Change.RISE,
             changePrice = 5.0,
@@ -70,7 +102,7 @@ class TickerServiceTest {
             accTradePrice24h = 1200000.0,
             tradeDate = tradeDate,
             tradeTime = tradeTime,
-            tradeTimestamp = System.currentTimeMillis(),
+            tradeTimestamp = timestamp,
             askBid = AskBid.BID,
             accAskVolume = 5000.0,
             accBidVolume = 6000.0,
@@ -80,16 +112,11 @@ class TickerServiceTest {
             lowest52WeekDate = LocalDate.of(2023, 1, 1),
             marketState = MarketState.ACTIVE,
             marketWarning = MarketWarning.NONE,
-            timestamp = System.currentTimeMillis(),
+            timestamp = timestamp,
             accAskBidRate = 0.0,
             highBreakout = false,
-            lowBreakout = false
-        )
-
-        testMarket = Market(
-            code = "KRW-BTC",
-            koreanName = "비트코인",
-            englishName = "Bitcoin"
+            lowBreakout = false,
+            oneMinuteRate = 0.05
         )
     }
 
@@ -100,7 +127,6 @@ class TickerServiceTest {
         tickerService.update(testTicker)
 
         val result = tickerService.getTicker(testTicker.code)
-
         assertNotNull(result)
         assertEquals(testTicker.code, result.code)
     }
@@ -108,30 +134,55 @@ class TickerServiceTest {
     @Test
     @DisplayName("getTicker 실패 - 존재하지 않는 현재가 조회 시 예외 발생")
     fun getTicker_Failure() {
-        `when`(messageUtil.resolveMessage("ticker.not.found")).thenReturn("해당 현재가를 찾을 수 없습니다.")
+        `when`(messageUtil.resolveMessage("ticker.not.found")).thenReturn("현재가 정보가 없습니다.")
 
-        val exception = assertThrows(BusinessException::class.java) {
+        val ex = assertThrows<BusinessException> {
             tickerService.getTicker("KRW-ETH")
         }
-
-        assertEquals("해당 현재가를 찾을 수 없습니다.", exception.message)
+        assertEquals(messageUtil.resolveMessage("ticker.not.found"), ex.message)
     }
 
     @Test
-    @DisplayName("updateTicker 성공 - 캐시에 저장 확인")
-    fun updateTicker() {
+    @DisplayName("calculateOneMinuteRate 테스트")
+    fun calculateOneMinuteRate() {
+        `when`(marketService.getCachedMarketByCode(anyString())).thenReturn(testMarket)
+        tickerService.update(oldTestTicker)
+
+        val rate = tickerService.calculateOneMinuteRate(testTicker.code, testTicker.tradePrice)
+        assertEquals(0.05, rate)
+    }
+
+    @Test
+    @DisplayName("update 성공 - 캐시에 저장 확인")
+    fun update() {
         `when`(marketService.getCachedMarketByCode(anyString())).thenReturn(testMarket)
         tickerService.update(testTicker)
 
-        val cachedTicker = getTickerCache()[testTicker.code]
-        assertNotNull(cachedTicker)
-        assertEquals(testTicker.code, cachedTicker?.code)
+        val deque = getTickerListCache()[testTicker.code]
+        assertNotNull(deque)
+        assertFalse(deque!!.isEmpty())
+        assertEquals(testTicker.code, deque.peekLast().code)
     }
 
-    private fun getTickerCache(): Map<String, TickerDto> {
-        val field: Field = TickerService::class.java.getDeclaredField("tickerCache")
+    private fun getTickerListCache(): Map<String, Deque<TickerDto>> {
+        val field: Field = TickerService::class.java.getDeclaredField("tickerListCache")
         field.isAccessible = true
-        return field.get(tickerService) as Map<String, TickerDto>
+        @Suppress("UNCHECKED_CAST")
+        return field.get(tickerService) as Map<String, Deque<TickerDto>>
+    }
+
+    @Test
+    @DisplayName("pushMessage 성공 - 변동률이 임계값 이상이면 푸시 전송")
+    fun pushMessage_Success() = runTest {
+        val dto = TickerDto.from(testTicker, testMarket)
+        val message = "급등 알림"
+        `when`(messageUtil.resolveMessage("high.rate")).thenReturn(message)
+
+        tickerService.pushMessage(dto)
+
+        advanceUntilIdle() // 모든 코루틴이 끝날 때까지 기다림
+
+        verify(pushService, times(1)).sendAsync(dto.code, message, dto.code)
     }
 
     @Test

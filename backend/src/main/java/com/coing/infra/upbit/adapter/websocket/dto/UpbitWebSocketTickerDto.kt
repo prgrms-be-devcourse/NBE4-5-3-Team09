@@ -110,7 +110,7 @@ data class UpbitWebSocketTickerDto(
     @JsonProperty("st")
     val streamType: String
 ) {
-    fun toEntity(): Ticker = Ticker(
+    fun toEntity(oneMinuteRate: Double): Ticker = Ticker(
         type = type,
         code = code,
         openingPrice = openingPrice,
@@ -143,7 +143,8 @@ data class UpbitWebSocketTickerDto(
         timestamp = timestamp,
         accAskBidRate = calcAccAskBidRate(),
         highBreakout = calcHighBreakout(),
-        lowBreakout = calcLowBreakout()
+        lowBreakout = calcLowBreakout(),
+        oneMinuteRate = oneMinuteRate
     )
 
     private fun calcAccAskBidRate(): Double {

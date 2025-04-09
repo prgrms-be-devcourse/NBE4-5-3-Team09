@@ -4,6 +4,7 @@ import com.coing.domain.bookmark.controller.dto.BookmarkRequest
 import com.coing.domain.bookmark.controller.dto.BookmarkResponse
 import com.coing.domain.bookmark.service.BookmarkService
 import com.coing.domain.coin.common.dto.PagedResponse
+import com.coing.domain.notification.service.PushService
 import com.coing.domain.user.dto.CustomUserPrincipal
 import com.coing.global.exception.doc.ApiErrorCodeExamples
 import com.coing.global.exception.doc.ErrorCode
@@ -24,7 +25,8 @@ import org.springframework.web.bind.annotation.*
 @RestController
 @RequestMapping("/api")
 class BookmarkController(
-    private val bookmarkService: BookmarkService
+    private val bookmarkService: BookmarkService,
+    private val pushService: PushService
 ) {
 
     @Operation(summary = "북마크 등록", security = [SecurityRequirement(name = "bearerAuth")])
@@ -35,6 +37,7 @@ class BookmarkController(
         @AuthenticationPrincipal principal: CustomUserPrincipal
     ): ResponseEntity<BasicResponse> {
         bookmarkService.addBookmark(request, principal)
+        pushService.subscribe(principal.id, request.coinCode)
         val response = BasicResponse(HttpStatus.CREATED, "북마크 등록 성공", "")
         return ResponseEntity.ok(response)
     }
@@ -66,6 +69,7 @@ class BookmarkController(
         @AuthenticationPrincipal principal: CustomUserPrincipal
     ): ResponseEntity<BasicResponse> {
         bookmarkService.deleteBookmark(principal.id, marketCode)
+        pushService.unsubscribe(principal.id, marketCode)
         val response = BasicResponse(HttpStatus.NO_CONTENT, "북마크 삭제 성공", "")
         return ResponseEntity.ok(response)
     }
