@@ -38,4 +38,29 @@ class AdminControllerIntegrationTest {
         )
             .andExpect(status().isForbidden)
     }
+
+
+    // 관리자 권한 확인 엔드포인트 테스트 (관리자이면 OK 반환)
+    @Test
+    @WithMockUser(roles = ["ADMIN"])
+    fun `관리자 권한 확인 엔드포인트 - 관리자이면 OK 반환`() {
+        mockMvc.perform(
+            get("/api/admin/auth-check")
+                .contentType(MediaType.APPLICATION_JSON)
+        )
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.status").value("success"))
+            .andExpect(jsonPath("$.message").value("관리자 권한이 확인되었습니다."))
+    }
+
+    // 관리자 권한 확인 엔드포인트 테스트 (일반 사용자이면 Forbidden 반환)
+    @Test
+    @WithMockUser(roles = ["USER"])
+    fun `관리자 권한 확인 엔드포인트 - 일반 사용자이면 Forbidden 반환`() {
+        mockMvc.perform(
+            get("/api/admin/auth-check")
+                .contentType(MediaType.APPLICATION_JSON)
+        )
+            .andExpect(status().isForbidden)
+    }
 }
