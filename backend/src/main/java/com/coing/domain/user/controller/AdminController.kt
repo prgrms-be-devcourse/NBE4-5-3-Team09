@@ -2,6 +2,8 @@ package com.coing.domain.user.controller
 
 import com.coing.domain.chat.dto.ChatMessageReportDto
 import com.coing.domain.chat.service.ChatReportService
+import com.coing.global.exception.doc.ApiErrorCodeExamples
+import com.coing.global.exception.doc.ErrorCode
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.http.ResponseEntity
@@ -19,6 +21,12 @@ class AdminController(
 
     // ADMIN 권한만 접근할 수 있도록 설정
     @Operation(summary = "신고된 메시지 조회", description = "신고된 메시지를 조회합니다.")
+    @ApiErrorCodeExamples(
+        ErrorCode.REPORT_NOT_FOUND,
+        ErrorCode.INVALID_TOKEN,
+        ErrorCode.TOKEN_REQUIRED,
+        ErrorCode.INTERNAL_SERVER_ERROR
+    )
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     @GetMapping("/reported-messages")
     fun getReportedMessages(): ResponseEntity<List<ChatMessageReportDto>> {

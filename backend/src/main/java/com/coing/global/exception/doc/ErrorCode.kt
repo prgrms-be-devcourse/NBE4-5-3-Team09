@@ -51,5 +51,12 @@ enum class ErrorCode(
 	TRADE_NOT_FOUND(HttpStatus.NOT_FOUND, "trade.not.found"),
 
 	// Ticker
-	TICKER_NOT_FOUND(HttpStatus.NOT_FOUND, "ticker.not.found")
+	TICKER_NOT_FOUND(HttpStatus.NOT_FOUND, "ticker.not.found"),
+
+	// Chat
+	MESSAGE_NOT_FOUND(HttpStatus.NOT_FOUND, "message.not.found"),
+	MESSAGE_ALREADY_REPORTED(HttpStatus.CONFLICT, "message.already.reported"),
+	CHAT_ROOM_NOT_FOUND(HttpStatus.NOT_FOUND, "chat.room.not.found"),
+	MESSAGE_REPORT_FAILED(HttpStatus.BAD_REQUEST, "message.report.failed"),
+	REPORT_NOT_FOUND(HttpStatus.NOT_FOUND, "report.not.found")
 }

@@ -4,6 +4,8 @@ import com.coing.domain.chat.dto.ChatMessageDto
 import com.coing.domain.chat.entity.ChatMessage
 import com.coing.domain.chat.entity.ChatRoom
 import com.coing.domain.chat.service.ChatService
+import com.coing.global.exception.doc.ApiErrorCodeExamples
+import com.coing.global.exception.doc.ErrorCode
 import io.swagger.v3.oas.annotations.Operation
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
@@ -20,6 +22,7 @@ class ChatController(
 ) {
     // 채팅방의 메시지 목록 조회 (marketCode 기준, 최근 10분 메시지 캐시 조회)
     @Operation(summary = "채팅방 메세지 목록 조회 - 최근 10분")
+    @ApiErrorCodeExamples(ErrorCode.MARKET_NOT_FOUND, ErrorCode.CHAT_ROOM_NOT_FOUND, ErrorCode.INTERNAL_SERVER_ERROR)
     @GetMapping("/rooms/{marketCode}/messages")
     fun getMessagesByMarket(@PathVariable("marketCode") marketCode: String): ResponseEntity<List<ChatMessageDto>> {
         // 채팅방 조회 (없으면 생성)

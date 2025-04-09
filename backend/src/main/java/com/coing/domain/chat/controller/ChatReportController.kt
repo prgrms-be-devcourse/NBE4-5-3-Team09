@@ -4,6 +4,8 @@ import com.coing.domain.chat.entity.ChatMessage
 import com.coing.domain.chat.service.ChatReportService
 import com.coing.domain.chat.service.ChatService
 import com.coing.domain.user.entity.User
+import com.coing.global.exception.doc.ApiErrorCodeExamples
+import com.coing.global.exception.doc.ErrorCode
 import com.coing.util.BasicResponse
 import io.swagger.v3.oas.annotations.Operation
 import org.springframework.http.HttpStatus
@@ -28,6 +30,12 @@ class ChatReportController(
      * @param currentUser 현재 인증된 사용자 (신고자)
      */
     @Operation(summary = "메세지 신고하기")
+    @ApiErrorCodeExamples(
+        ErrorCode.MESSAGE_NOT_FOUND,
+        ErrorCode.MESSAGE_ALREADY_REPORTED,
+        ErrorCode.MEMBER_NOT_FOUND,
+        ErrorCode.MESSAGE_REPORT_FAILED,
+        ErrorCode.INTERNAL_SERVER_ERROR)
     @PostMapping("/{messageId}/report")
     fun reportMessage(
         @PathVariable messageId: Long,
