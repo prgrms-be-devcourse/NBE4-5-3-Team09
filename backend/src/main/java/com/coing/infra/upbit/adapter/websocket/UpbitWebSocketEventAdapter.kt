@@ -3,6 +3,7 @@ package com.coing.infra.upbit.adapter.websocket
 import com.coing.domain.coin.common.port.CoinDataHandler
 import com.coing.domain.coin.orderbook.entity.Orderbook
 import com.coing.domain.coin.ticker.entity.Ticker
+import com.coing.domain.coin.ticker.service.TickerService
 import com.coing.domain.coin.trade.entity.Trade
 import com.coing.infra.upbit.adapter.websocket.dto.UpbitWebSocketOrderbookDto
 import com.coing.infra.upbit.adapter.websocket.dto.UpbitWebSocketTickerDto
@@ -20,6 +21,7 @@ class UpbitWebSocketEventAdapter(
     private val orderbookHandler: CoinDataHandler<Orderbook>,
     private val ticketHandler: CoinDataHandler<Ticker>,
     private val tradeHandler: CoinDataHandler<Trade>,
+    private val tickerService: TickerService
 ) {
     fun handleOrderbookEvent(dto: UpbitWebSocketOrderbookDto) {
         val orderbook = dto.toEntity()
@@ -27,8 +29,8 @@ class UpbitWebSocketEventAdapter(
     }
 
     fun handleTickerEvent(dto: UpbitWebSocketTickerDto) {
-        // double oneMinuteRate = tickerService.calculateOneMinuteRate(dto.getCode(), dto.getTradePrice());
-        val ticker: Ticker = dto.toEntity()
+        val oneMinuteRate = tickerService.calculateOneMinuteRate(dto.code, dto.tradePrice)
+        val ticker: Ticker = dto.toEntity(oneMinuteRate)
         ticketHandler.update(ticker)
     }
 

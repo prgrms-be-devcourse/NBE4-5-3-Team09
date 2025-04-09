@@ -47,8 +47,8 @@ data class TickerDto(
     // 계산된 지표
     val accAskBidRate: Double,   // 매수/매도 누적 비율
     val highBreakout: Boolean,   // 52주 최고가 갱신 여부
-    val lowBreakout: Boolean     // 52주 최저가 갱신 여부
-    // val oneMinuteRate: Double? // 주석 처리됨
+    val lowBreakout: Boolean,    // 52주 최저가 갱신 여부
+    val oneMinuteRate: Double    // 단기 변동률(1분)
 ) : CodeDto {
     companion object {
         fun from(ticker: Ticker, market: Market): TickerDto {
@@ -87,8 +87,8 @@ data class TickerDto(
                 timestamp = ticker.timestamp,
                 accAskBidRate = ticker.accAskBidRate,
                 highBreakout = ticker.highBreakout,
-                lowBreakout = ticker.lowBreakout
-                // oneMinuteRate = ticker.oneMinuteRate // 주석 처리됨
+                lowBreakout = ticker.lowBreakout,
+                oneMinuteRate = ticker.oneMinuteRate
             )
         }
     }

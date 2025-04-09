@@ -41,5 +41,5 @@ data class Ticker(
     val accAskBidRate: Double, // 매수/매도 누적 비율
     val highBreakout: Boolean, // 52주 최고가 갱신 여부
     val lowBreakout: Boolean, // 52주 최저가 갱신 여부
-//    val oneMinuteRate: Double // 단기 변동률(1분)
+    val oneMinuteRate: Double // 단기 변동률(1분)
 )
