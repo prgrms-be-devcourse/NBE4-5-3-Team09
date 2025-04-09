@@ -1,5 +1,6 @@
 package com.coing.infra.upbit.handler
 
+import com.coing.infra.upbit.adapter.websocket.handler.UpbitWebSocketHandler
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test

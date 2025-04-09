@@ -3,19 +3,21 @@ package com.coing.domain.coin.market.service
 import com.coing.domain.bookmark.repository.BookmarkRepository
 import com.coing.domain.coin.market.dto.MarketResponseDto
 import com.coing.domain.coin.market.entity.Market
+import com.coing.domain.coin.market.port.MarketDataPort
 import com.coing.domain.coin.market.repository.MarketRepository
 import com.coing.domain.user.dto.CustomUserPrincipal
 import com.coing.global.exception.BusinessException
 import com.coing.util.MessageUtil
-import org.assertj.core.api.Assertions.*
+import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.catchThrowable
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.mockito.Mockito.*
+import org.mockito.Mockito.mock
+import org.mockito.Mockito.`when`
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Pageable
 import org.springframework.http.HttpStatus
-import org.springframework.web.client.RestTemplate
-import java.util.UUID
+import java.util.*
 
 class MarketServiceTest {
 
@@ -24,7 +26,7 @@ class MarketServiceTest {
 	private lateinit var marketCacheService: MarketCacheService
 	private lateinit var bookmarkRepository: BookmarkRepository
 	private lateinit var marketRepository: MarketRepository
-	private lateinit var restTemplate: RestTemplate
+	private lateinit var marketDataPort: MarketDataPort
 
 	private val testMarket = Market(
 		code = "KRW-BTC",
@@ -38,14 +40,14 @@ class MarketServiceTest {
 		marketCacheService = mock(MarketCacheService::class.java)
 		bookmarkRepository = mock(BookmarkRepository::class.java)
 		marketRepository = mock(MarketRepository::class.java)
-		restTemplate = mock(RestTemplate::class.java)
+		marketDataPort = mock(MarketDataPort::class.java)
 
 		marketService = MarketService(
 			messageUtil,
 			marketCacheService,
 			bookmarkRepository,
 			marketRepository,
-			restTemplate
+			marketDataPort
 		)
 	}
 

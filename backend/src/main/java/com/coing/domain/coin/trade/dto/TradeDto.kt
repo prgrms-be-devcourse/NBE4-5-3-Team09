@@ -2,13 +2,14 @@ package com.coing.domain.coin.trade.dto
 
 import com.coing.domain.coin.common.enums.AskBid
 import com.coing.domain.coin.common.enums.Change
+import com.coing.domain.coin.common.port.CodeDto
 import com.coing.domain.coin.trade.entity.Trade
 import java.time.LocalDate
 import java.time.LocalTime
 
 data class TradeDto(
     val type: String,
-    val code: String,
+    override val code: String,
     val tradePrice: Double,
     val tradeVolume: Double,
     val askBid: AskBid,
@@ -27,7 +28,7 @@ data class TradeDto(
     val vwap: Double,
     val averageTradeSize: Double,
     val tradeImpact: Double
-) {
+) : CodeDto {
     companion object {
         fun of(trade: Trade, vwap: Double, averageTradeSize: Double, tradeImpact: Double): TradeDto =
             TradeDto(

@@ -2,6 +2,7 @@ package com.coing.domain.coin.ticker.dto
 
 import com.coing.domain.coin.common.enums.AskBid
 import com.coing.domain.coin.common.enums.Change
+import com.coing.domain.coin.common.port.CodeDto
 import com.coing.domain.coin.market.entity.Market
 import com.coing.domain.coin.ticker.entity.Ticker
 import com.coing.domain.coin.ticker.entity.enums.MarketState
@@ -11,7 +12,7 @@ import java.time.LocalTime
 
 data class TickerDto(
     val type: String,             // 데이터 타입 (예: "ticker")
-    val code: String,             // 마켓 코드 (예: "KRW-BTC")
+    override val code: String,             // 마켓 코드 (예: "KRW-BTC")
     val koreanName: String,       // 한글 이름
     val englishName: String,      // 영어 이름
     val openingPrice: Double,     // 시가
@@ -48,7 +49,7 @@ data class TickerDto(
     val highBreakout: Boolean,   // 52주 최고가 갱신 여부
     val lowBreakout: Boolean     // 52주 최저가 갱신 여부
     // val oneMinuteRate: Double? // 주석 처리됨
-) {
+) : CodeDto {
     companion object {
         fun from(ticker: Ticker, market: Market): TickerDto {
             return TickerDto(

@@ -1,7 +1,8 @@
 package com.coing.infra.upbit.handler
 
-import com.coing.infra.upbit.adapter.UpbitDataService
-import com.coing.infra.upbit.dto.UpbitWebSocketOrderbookDto
+import com.coing.infra.upbit.adapter.websocket.UpbitWebSocketEventAdapter
+import com.coing.infra.upbit.adapter.websocket.handler.UpbitWebSocketOrderbookHandler
+import com.coing.infra.upbit.adapter.websocket.dto.UpbitWebSocketOrderbookDto
 import com.coing.infra.upbit.util.UpbitRequestBuilder
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
@@ -18,7 +19,7 @@ import java.nio.charset.StandardCharsets
 
 @ExtendWith(MockitoExtension::class)
 class UpbitWebSocketOrderbookHandlerTest {
-    private val upbitDataService: UpbitDataService = mock()
+    private val upbitWebSocketEventAdapter: UpbitWebSocketEventAdapter = mock()
     private val session: WebSocketSession = mock()
     private val upbitRequestBuilder: UpbitRequestBuilder = mock()
 
@@ -26,14 +27,14 @@ class UpbitWebSocketOrderbookHandlerTest {
 
     @BeforeEach
     fun setUp() {
-        handler = UpbitWebSocketOrderbookHandler(upbitDataService, upbitRequestBuilder)
+        handler = UpbitWebSocketOrderbookHandler(upbitWebSocketEventAdapter, upbitRequestBuilder)
     }
 
     @Test
     @DisplayName("afterConnectionEstablished() 성공")
     fun successAfterConnectionEstablished() {
         // given
-        whenever(upbitRequestBuilder.makeRequest(any())).thenReturn("""[{"ticket":"orderbook"}]""")
+        whenever(upbitRequestBuilder.makeWebSocketRequest(any())).thenReturn("""[{"ticket":"orderbook"}]""")
 
         // when
         handler.afterConnectionEstablished(session)
@@ -77,7 +78,7 @@ class UpbitWebSocketOrderbookHandlerTest {
         spyHandler.handleBinaryMessage(session, binaryMessage)
 
         // then
-        verify(upbitDataService).handleOrderbookEvent(any<UpbitWebSocketOrderbookDto>())
+        verify(upbitWebSocketEventAdapter).handleOrderbookEvent(any<UpbitWebSocketOrderbookDto>())
     }
 
     @Test
@@ -91,7 +92,7 @@ class UpbitWebSocketOrderbookHandlerTest {
         handler.handleBinaryMessage(session, binaryMessage)
 
         // then
-        verify(upbitDataService, never()).handleOrderbookEvent(any())
+        verify(upbitWebSocketEventAdapter, never()).handleOrderbookEvent(any())
     }
 
     @Test
@@ -105,6 +106,6 @@ class UpbitWebSocketOrderbookHandlerTest {
         handler.handleBinaryMessage(session, binaryMessage)
 
         // then
-        verify(upbitDataService, never()).handleOrderbookEvent(any())
+        verify(upbitWebSocketEventAdapter, never()).handleOrderbookEvent(any())
     }
 }

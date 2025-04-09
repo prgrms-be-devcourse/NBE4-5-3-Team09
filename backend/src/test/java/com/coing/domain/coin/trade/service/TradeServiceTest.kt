@@ -2,6 +2,7 @@ package com.coing.domain.coin.trade.service
 
 import com.coing.domain.coin.common.enums.AskBid.ASK
 import com.coing.domain.coin.common.enums.Change.EVEN
+import com.coing.domain.coin.common.port.EventPublisher
 import com.coing.domain.coin.trade.dto.TradeDto
 import com.coing.domain.coin.trade.entity.Trade
 import com.coing.global.exception.BusinessException
@@ -15,7 +16,6 @@ import org.mockito.InjectMocks
 import org.mockito.Mock
 import org.mockito.Mockito.*
 import org.mockito.junit.jupiter.MockitoExtension
-import org.springframework.messaging.simp.SimpMessageSendingOperations
 import java.time.LocalDate
 import java.time.LocalTime
 
@@ -23,7 +23,7 @@ import java.time.LocalTime
 class TradeServiceTest {
 
     @Mock
-    lateinit var simpMessageSendingOperations: SimpMessageSendingOperations
+    lateinit var tradePublisher: EventPublisher<TradeDto>
 
     @Mock
     lateinit var messageUtil: MessageUtil
@@ -96,7 +96,7 @@ class TradeServiceTest {
         tradeService.publish(dto)
 
         // then
-        verify(simpMessageSendingOperations, times(1))
-            .convertAndSend(eq("/sub/coin/trade/KRW-BTC"), any(TradeDto::class.java))
+        verify(tradePublisher, times(1))
+            .publish(dto)
     }
 }

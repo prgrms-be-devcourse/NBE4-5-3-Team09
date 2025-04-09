@@ -100,6 +100,20 @@ class UserService(
         log.info("회원 탈퇴 성공: $id")
     }
 
+    @Transactional
+    fun socialQuit(id: UUID) {
+        val user = userRepository.findById(id)
+            .orElseThrow {
+                BusinessException(
+                    messageUtil.resolveMessage("member.not.found"),
+                    HttpStatus.BAD_REQUEST,
+                    ""
+                )
+            }
+        userRepository.delete(user)
+        log.info("소셜 로그인한 회원 탈퇴 성공: $id")
+    }
+
     @Transactional(readOnly = true)
     fun findById(id: UUID): UserResponse {
         return userRepository.findById(id)
