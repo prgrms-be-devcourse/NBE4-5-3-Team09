@@ -17,4 +17,6 @@ interface BookmarkRepository : JpaRepository<Bookmark, Long> {
     ): List<Bookmark>
 
     fun findByMarketCode(code: String): Bookmark?
+
+    fun findByUserId(userId: UUID): List<Bookmark>
 }
