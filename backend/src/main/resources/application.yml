@@ -92,8 +92,6 @@ custom:
 upbit:
   websocket:
     uri: ${UPBIT_WS_URI:wss://api.upbit.com/websocket/v1}
-  trade:
-    uri: ${UPBIT_TRADE_URI:https://api.upbit.com/v1/trades/ticks}
 
 naver:
   client:

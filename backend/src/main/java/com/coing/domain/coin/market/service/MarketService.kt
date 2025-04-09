@@ -39,10 +39,10 @@ class MarketService(
 		return try {
 			val markets = marketDataPort.fetchMarkets()
 			marketRepository.saveAll(markets)
-			log.info("[Market] Market list updated from Upbit API.")
+			log.info("[Market] Market list updated.")
 			markets
 		} catch (e: Exception) {
-			log.error("[Market] Error updating from Upbit: ${e.message}. Falling back to DB.")
+			log.error("[Market] Error updating: ${e.message}. Falling back to DB.")
 			marketRepository.findAll()
 		}
 	}

@@ -2,7 +2,7 @@ package com.coing.domain.coin.candle.controller
 
 import com.coing.domain.coin.candle.controller.dto.CandleResponse
 import com.coing.domain.coin.candle.enums.EnumCandleType
-import com.coing.domain.coin.candle.service.UpbitCandleService
+import com.coing.domain.coin.candle.service.CandleService
 import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.*
 @RestController
 @RequestMapping("/api/candles")
 class CandleController(
-    private val upbitCandleService: UpbitCandleService
+    private val candleService: CandleService
 ) {
 
     // 예: /api/candles/KRW-BTC/seconds
@@ -22,7 +22,7 @@ class CandleController(
         @PathVariable("type") type: EnumCandleType,
         @RequestParam(value = "unit", required = false) unit: Int?
     ): ResponseEntity<List<CandleResponse>> {
-        val candles = upbitCandleService.getLatestCandles(market, type, unit)
+        val candles = candleService.getLatestCandles(market, type, unit)
         val response = candles.map { CandleResponse.from(it) }
         return ResponseEntity.ok(response)
     }

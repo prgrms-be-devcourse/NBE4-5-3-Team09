@@ -3,7 +3,7 @@ package com.coing.domain.coin.candle.controller
 import com.coing.domain.coin.candle.controller.dto.CandleResponse
 import com.coing.domain.coin.candle.entity.Candle
 import com.coing.domain.coin.candle.enums.EnumCandleType
-import com.coing.domain.coin.candle.service.UpbitCandleService
+import com.coing.domain.coin.candle.service.CandleService
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.hamcrest.Matchers.equalTo
 import org.junit.jupiter.api.Test
@@ -29,7 +29,7 @@ class CandleControllerTest {
     lateinit var objectMapper: ObjectMapper
 
     @MockitoBean
-    lateinit var upbitCandleService: UpbitCandleService
+    lateinit var candleService: CandleService
 
     @Test
     fun `초봉 캔들 데이터 조회`() {
@@ -47,7 +47,7 @@ class CandleControllerTest {
                 timestamp = 1680866400000
             )
         val responseDto = listOf(CandleResponse.from(dummyCandle))
-        given(upbitCandleService.getLatestCandles(market, type, null)).willReturn(listOf(dummyCandle))
+        given(candleService.getLatestCandles(market, type, null)).willReturn(listOf(dummyCandle))
 
         // when & then
         mockMvc.get("/api/candles/$market/$type") {
@@ -90,7 +90,7 @@ class CandleControllerTest {
             )
         )
         val responseDtos = dummyCandleList.map { CandleResponse.from(it) }
-        given(upbitCandleService.getLatestCandles(market, type, unit)).willReturn(dummyCandleList)
+        given(candleService.getLatestCandles(market, type, unit)).willReturn(dummyCandleList)
 
         // when & then
         mockMvc.get("/api/candles/$market/$type") {

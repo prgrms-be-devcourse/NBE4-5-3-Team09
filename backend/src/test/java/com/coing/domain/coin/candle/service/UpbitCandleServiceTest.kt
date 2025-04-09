@@ -11,15 +11,15 @@ import org.mockito.Mockito.mock
 import org.mockito.Mockito.`when`
 import java.time.Instant
 
-class UpbitCandleServiceUnitTest {
+class CandleServiceUnitTest {
 
-	private lateinit var service: UpbitCandleService
+	private lateinit var service: CandleService
 	private lateinit var candleDataPort: CandleDataPort
 
 	@BeforeEach
 	fun setUp() {
 		candleDataPort = mock(CandleDataPort::class.java)
-		service = UpbitCandleService(candleDataPort)
+		service = CandleService(candleDataPort)
 	}
 
     @Test

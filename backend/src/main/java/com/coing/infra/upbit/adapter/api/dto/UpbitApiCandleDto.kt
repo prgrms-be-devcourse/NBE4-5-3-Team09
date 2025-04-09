@@ -1,8 +1,10 @@
 package com.coing.infra.upbit.adapter.api.dto
 
 import com.coing.domain.coin.candle.entity.Candle
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonProperty
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 data class UpbitApiCandleDto(
     @JsonProperty("market") val code: String? = null,
     @JsonProperty("candle_date_time_utc") val candleDateTimeUtc: String? = null,

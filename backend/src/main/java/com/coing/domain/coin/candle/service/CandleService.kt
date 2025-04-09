@@ -7,10 +7,10 @@ import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 
 @Service
-class UpbitCandleService(
+class CandleService(
 	private val candleDataPort: CandleDataPort
 ) {
-	private val log = LoggerFactory.getLogger(UpbitCandleService::class.java)
+	private val log = LoggerFactory.getLogger(CandleService::class.java)
 
 	/**
 	 * 특정 마켓과 캔들 타입에 따른 보정된 캔들 데이터를 Upbit REST API로부터 가져옵니다.
@@ -20,7 +20,7 @@ class UpbitCandleService(
 		return try {
 			candleDataPort.fetchLatestCandles(market, candleType, unit)
 		} catch  (e: Exception) {
-			log.error("[Candle] Error fetching from Upbit: ${e.message}.")
+			log.error("[Candle] Error fetching: ${e.message}.")
 			emptyList()
 		}
 	}
