@@ -3,12 +3,19 @@
 import { defaultState, useUserStore } from '@/store/user.store';
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 
+interface UserProfile {
+  name: string;
+  email: string;
+  authority?: string; // 추가: 권한 정보 (예: "ROLE_ADMIN", "ROLE_USER")
+}
+
 interface AuthContextType {
   isLogin: boolean;
   accessToken: string | null;
   setAccessToken: (token: string | null) => void;
   isAuthLoading: boolean;
   customFetch: (input: RequestInfo, init?: RequestInit) => Promise<Response>;
+  user: UserProfile | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -24,7 +31,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return null;
   });
   const [isAuthLoading, setIsAuthLoading] = useState<boolean>(true);
-  const { setUser } = useUserStore();
+
+  // zustand 스토어에서 user 상태와 setUser 액션을 가져옵니다.
+  const { user, setUser } = useUserStore();
 
   const setAccessToken = (token: string | null) => {
     setAccessTokenState(token);
@@ -79,19 +88,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
       return response;
     },
-    [accessToken],
+    [accessToken]
   );
 
   // 컴포넌트 마운트 시 토큰 유무 체크
   useEffect(() => {
     async function validateToken() {
+      // 단순히 토큰 존재 여부만 확인
       sessionStorage.getItem('accessToken');
       setIsAuthLoading(false);
     }
     validateToken();
   }, []);
 
-  // accessToken이 있을 때 사용자 정보를 한 번만 API 호출로 가져와 전역 스토어에 저장
+  // accessToken이 있을 때 사용자 정보를 API 호출로 가져와 zustand 스토어에 저장
   useEffect(() => {
     async function fetchUserInfo() {
       if (!accessToken) {
@@ -106,7 +116,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         });
         if (res.ok) {
           const data = await res.json();
-          setUser({ name: data.name, email: data.email });
+          // 백엔드에서 반환하는 데이터에 authority 값도 포함되어 있다고 가정합니다.
+          setUser({ name: data.name, email: data.email, authority: data.authority });
         } else {
           setUser(defaultState);
         }
@@ -116,7 +127,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     }
     fetchUserInfo();
-  }, [accessToken, setUser]);
+  }, [accessToken, setUser, customFetch]);
 
   return (
     <AuthContext.Provider
@@ -126,6 +137,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setAccessToken,
         isAuthLoading,
         customFetch,
+        user,
       }}
     >
       {children}
