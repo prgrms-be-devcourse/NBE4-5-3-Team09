@@ -1,8 +1,8 @@
-package com.coing.infra.upbit.handler
+package com.coing.infra.upbit.adapter.websocket.handler
 
-import com.coing.infra.upbit.adapter.UpbitDataService
-import com.coing.infra.upbit.dto.UpbitWebSocketTickerDto
-import com.coing.infra.upbit.enums.EnumUpbitRequestType
+import com.coing.infra.upbit.adapter.websocket.UpbitWebSocketEventAdapter
+import com.coing.infra.upbit.adapter.websocket.dto.UpbitWebSocketTickerDto
+import com.coing.infra.upbit.adapter.websocket.enums.EnumUpbitWebSocketRequestType
 import com.coing.infra.upbit.util.UpbitRequestBuilder
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.slf4j.LoggerFactory
@@ -16,7 +16,7 @@ import java.nio.charset.StandardCharsets
 @Component
 class UpbitWebSocketTickerHandler(
     private val objectMapper: ObjectMapper,
-    private val upbitDataService: UpbitDataService,
+    private val upbitDataService: UpbitWebSocketEventAdapter,
     private val upbitRequestBuilder: UpbitRequestBuilder
 ) : BinaryWebSocketHandler() {
 
@@ -24,7 +24,7 @@ class UpbitWebSocketTickerHandler(
 
     override fun afterConnectionEstablished(session: WebSocketSession) {
         log.info("Upbit WebSocket Ticker connection established.")
-        val subscribeMessage = upbitRequestBuilder.makeRequest(EnumUpbitRequestType.TICKER)
+        val subscribeMessage = upbitRequestBuilder.makeWebSocketRequest(EnumUpbitWebSocketRequestType.TICKER)
         session.sendMessage(TextMessage(subscribeMessage))
     }
 

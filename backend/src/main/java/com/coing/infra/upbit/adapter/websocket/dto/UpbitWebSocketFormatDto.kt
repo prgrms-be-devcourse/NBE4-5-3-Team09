@@ -1,6 +1,6 @@
-package com.coing.infra.upbit.dto
+package com.coing.infra.upbit.adapter.websocket.dto
 
-import com.coing.infra.upbit.enums.EnumUpbitWebSocketFormat
+import com.coing.infra.upbit.adapter.websocket.enums.EnumUpbitWebSocketFormat
 
 /**
  * Upbit WebSocket Request Type Field

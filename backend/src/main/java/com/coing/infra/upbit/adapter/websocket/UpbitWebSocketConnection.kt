@@ -1,12 +1,11 @@
-package com.coing.infra.upbit.adapter
+package com.coing.infra.upbit.adapter.websocket
 
-import com.coing.infra.upbit.handler.UpbitWebSocketHandler
+import com.coing.infra.upbit.adapter.websocket.handler.UpbitWebSocketHandler
 import org.slf4j.LoggerFactory
 import org.springframework.web.socket.PingMessage
 import org.springframework.web.socket.WebSocketSession
 import org.springframework.web.socket.client.WebSocketClient
 import java.util.concurrent.Executors
-import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.concurrent.Volatile
@@ -21,11 +20,7 @@ class UpbitWebSocketConnection(
     // ex. "ORDERBOOK", "TRADE"
     private val name: String
 ) {
-    // 재연결 관련
-    private val scheduler: ScheduledExecutorService = Executors.newSingleThreadScheduledExecutor()
-    private val isReconnecting = AtomicBoolean(false)
-    private val BASE_DELAY_SECONDS: Long = 2
-    private val MAX_DELAY_SECONDS: Long = 60
+    private val log = LoggerFactory.getLogger(this::class.java)
 
     /**
      * 현재 WebSocket 연결 상태를 반환합니다.
@@ -36,9 +31,16 @@ class UpbitWebSocketConnection(
         get() = _isConnected
 
     @Volatile
-    private lateinit var session: WebSocketSession
-    private var reconnectAttempts: Long = 0
-    private val log = LoggerFactory.getLogger(this::class.java)
+    private var session: WebSocketSession? = null
+
+    // 재연결 관련
+    private val scheduler = Executors.newSingleThreadScheduledExecutor()
+    private val isReconnecting = AtomicBoolean(false)
+    private var reconnectAttempts = 0L
+
+    private val BASE_DELAY_SECONDS = 2L
+    private val MAX_DELAY_SECONDS = 60L
+
 
     /**
      * WebSocket 연결 시도
@@ -96,9 +98,9 @@ class UpbitWebSocketConnection(
      * Ping 메시지 전송
      */
     fun sendPing() {
-        if (isConnected && session.isOpen) {
+        if (isConnected && session?.isOpen == true) {
             try {
-                session.sendMessage(PingMessage())
+                session?.sendMessage(PingMessage())
                 log.info("[$name] Sent PING")
             } catch (e: Exception) {
                 log.error("[$name] Failed to send PING: ${e.message}", e)

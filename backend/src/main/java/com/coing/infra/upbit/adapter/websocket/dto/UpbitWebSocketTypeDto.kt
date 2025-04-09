@@ -1,4 +1,4 @@
-package com.coing.infra.upbit.dto
+package com.coing.infra.upbit.adapter.websocket.dto
 
 import com.fasterxml.jackson.annotation.JsonProperty
 import jakarta.validation.constraints.NotBlank

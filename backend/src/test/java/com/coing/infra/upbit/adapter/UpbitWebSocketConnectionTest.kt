@@ -1,6 +1,7 @@
 package com.coing.infra.upbit.adapter
 
-import com.coing.infra.upbit.handler.UpbitWebSocketHandler
+import com.coing.infra.upbit.adapter.websocket.UpbitWebSocketConnection
+import com.coing.infra.upbit.adapter.websocket.handler.UpbitWebSocketHandler
 import org.awaitility.Awaitility.await
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue

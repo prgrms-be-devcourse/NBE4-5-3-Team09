@@ -1,4 +1,4 @@
-package com.coing.infra.upbit.enums
+package com.coing.infra.upbit.adapter.websocket.enums
 
 enum class EnumUpbitWebSocketType {
     ORDERBOOK,

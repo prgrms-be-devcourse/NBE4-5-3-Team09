@@ -1,4 +1,4 @@
-package com.coing.infra.upbit.handler
+package com.coing.infra.upbit.adapter.websocket.handler
 
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component

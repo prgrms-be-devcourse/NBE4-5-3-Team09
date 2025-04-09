@@ -1,38 +1,34 @@
-package com.coing.infra.upbit.adapter
+package com.coing.infra.upbit.adapter.websocket
 
-import com.coing.infra.upbit.enums.EnumUpbitWebSocketType
-import com.coing.infra.upbit.handler.UpbitWebSocketHandler
-import com.coing.infra.upbit.handler.UpbitWebSocketOrderbookHandler
-import com.coing.infra.upbit.handler.UpbitWebSocketTickerHandler
-import com.coing.infra.upbit.handler.UpbitWebSocketTradeHandler
-import lombok.RequiredArgsConstructor
-import lombok.extern.slf4j.Slf4j
+import com.coing.infra.upbit.adapter.websocket.enums.EnumUpbitWebSocketType
+import com.coing.infra.upbit.adapter.websocket.handler.UpbitWebSocketHandler
+import com.coing.infra.upbit.adapter.websocket.handler.UpbitWebSocketOrderbookHandler
+import com.coing.infra.upbit.adapter.websocket.handler.UpbitWebSocketTickerHandler
+import com.coing.infra.upbit.adapter.websocket.handler.UpbitWebSocketTradeHandler
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.context.event.ApplicationReadyEvent
 import org.springframework.context.event.EventListener
 import org.springframework.scheduling.annotation.Scheduled
-import org.springframework.stereotype.Service
+import org.springframework.stereotype.Component
 import org.springframework.web.socket.client.WebSocketClient
 
 /**
  * 여러 WebSocket Type별로 UpbitWebSocketConnection을 생성하고 관리하는 서비스
  */
-@Service
-@RequiredArgsConstructor
-@Slf4j
-class UpbitWebSocketService(
+@Component
+class UpbitWebSocketManager(
     private val webSocketClient: WebSocketClient,
     private val orderbookHandler: UpbitWebSocketOrderbookHandler,
     private val tickerHandler: UpbitWebSocketTickerHandler,
     private val tradeHandler: UpbitWebSocketTradeHandler,
 ) {
-    private val connections: MutableMap<EnumUpbitWebSocketType, UpbitWebSocketConnection> = HashMap()
+    private val connections = mutableMapOf<EnumUpbitWebSocketType, UpbitWebSocketConnection>()
 
     @Value("\${upbit.websocket.uri}")
     private lateinit var upbitWebSocketUri: String
 
-    private val log = LoggerFactory.getLogger(UpbitWebSocketService::class.java)
+    private val log = LoggerFactory.getLogger(this::class.java)
 
     /**
      * 애플리케이션 시작 후 연결
@@ -64,18 +60,12 @@ class UpbitWebSocketService(
      */
     @Scheduled(fixedRate = 60000)
     fun sendPingMessages() {
-        for ((_, conn) in connections) {
-            conn.sendPing()
-        }
+        connections.values.forEach { it.sendPing() }
     }
 
     fun disconnectAll() {
-        for (conn in connections.values) {
-            conn.disconnect()
-        }
+        connections.values.forEach { it.disconnect() }
     }
 
-    fun getConnection(type: EnumUpbitWebSocketType): UpbitWebSocketConnection? {
-        return connections[type]
-    }
+    fun getConnection(type: EnumUpbitWebSocketType) = connections[type]
 }

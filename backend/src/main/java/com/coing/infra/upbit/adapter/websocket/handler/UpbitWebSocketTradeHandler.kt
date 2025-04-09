@@ -1,8 +1,8 @@
-package com.coing.infra.upbit.handler
+package com.coing.infra.upbit.adapter.websocket.handler
 
-import com.coing.infra.upbit.adapter.UpbitDataService
-import com.coing.infra.upbit.dto.UpbitWebSocketTradeDto
-import com.coing.infra.upbit.enums.EnumUpbitRequestType
+import com.coing.infra.upbit.adapter.websocket.UpbitWebSocketEventAdapter
+import com.coing.infra.upbit.adapter.websocket.dto.UpbitWebSocketTradeDto
+import com.coing.infra.upbit.adapter.websocket.enums.EnumUpbitWebSocketRequestType
 import com.coing.infra.upbit.util.UpbitRequestBuilder
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.slf4j.LoggerFactory
@@ -15,7 +15,7 @@ import java.nio.charset.StandardCharsets
 
 @Component
 class UpbitWebSocketTradeHandler(
-    private val upbitDataService: UpbitDataService,
+    private val upbitWebSocketEventAdapter: UpbitWebSocketEventAdapter,
     private val upbitRequestBuilder: UpbitRequestBuilder,
     private val objectMapper: ObjectMapper = ObjectMapper()
 ) : BinaryWebSocketHandler() {
@@ -24,7 +24,7 @@ class UpbitWebSocketTradeHandler(
 
     override fun afterConnectionEstablished(session: WebSocketSession) {
         log.info("Upbit WebSocket Trade connection established.")
-        val subscribeMessage = upbitRequestBuilder.makeRequest(EnumUpbitRequestType.TRADE)
+        val subscribeMessage = upbitRequestBuilder.makeWebSocketRequest(EnumUpbitWebSocketRequestType.TRADE)
         session.sendMessage(TextMessage(subscribeMessage))
     }
 
@@ -41,7 +41,7 @@ class UpbitWebSocketTradeHandler(
             }
 
             val tradeDto = objectMapper.readValue(payload, UpbitWebSocketTradeDto::class.java)
-            upbitDataService.handleTradeEvent(tradeDto)
+            upbitWebSocketEventAdapter.handleTradeEvent(tradeDto)
 
         } catch (e: Exception) {
             log.error("Error processing message: {}", payload, e)

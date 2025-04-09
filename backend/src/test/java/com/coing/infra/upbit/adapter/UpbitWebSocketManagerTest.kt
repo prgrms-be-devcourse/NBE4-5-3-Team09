@@ -1,9 +1,11 @@
 package com.coing.infra.upbit.adapter
 
-import com.coing.infra.upbit.enums.EnumUpbitWebSocketType
-import com.coing.infra.upbit.handler.UpbitWebSocketOrderbookHandler
-import com.coing.infra.upbit.handler.UpbitWebSocketTickerHandler
-import com.coing.infra.upbit.handler.UpbitWebSocketTradeHandler
+import com.coing.infra.upbit.adapter.websocket.UpbitWebSocketConnection
+import com.coing.infra.upbit.adapter.websocket.UpbitWebSocketManager
+import com.coing.infra.upbit.adapter.websocket.enums.EnumUpbitWebSocketType
+import com.coing.infra.upbit.adapter.websocket.handler.UpbitWebSocketOrderbookHandler
+import com.coing.infra.upbit.adapter.websocket.handler.UpbitWebSocketTickerHandler
+import com.coing.infra.upbit.adapter.websocket.handler.UpbitWebSocketTradeHandler
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
@@ -15,7 +17,7 @@ import org.springframework.test.util.ReflectionTestUtils
 import org.springframework.web.socket.client.WebSocketClient
 
 @ExtendWith(MockitoExtension::class)
-class UpbitWebSocketServiceTest {
+class UpbitWebSocketManagerTest {
 
     @Mock
     private lateinit var webSocketClient: WebSocketClient
@@ -29,13 +31,13 @@ class UpbitWebSocketServiceTest {
     @Mock
     private lateinit var tradeHandler: UpbitWebSocketTradeHandler
 
-    private lateinit var service: UpbitWebSocketService
+    private lateinit var service: UpbitWebSocketManager
 
     private val uri = "wss://api.upbit.com/websocket/v1"
 
     @BeforeEach
     fun setUp() {
-        service = UpbitWebSocketService(
+        service = UpbitWebSocketManager(
             webSocketClient,
             orderbookHandler,
             tickerHandler,

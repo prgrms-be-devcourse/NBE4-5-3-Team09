@@ -1,9 +1,9 @@
-package com.coing.infra.upbit.enums
+package com.coing.infra.upbit.adapter.websocket.enums
 
 /**
  * Upbit WebSocket Type
  */
-enum class EnumUpbitRequestType(val value: String) {
+enum class EnumUpbitWebSocketRequestType(val value: String) {
     TICKER("ticker"),
     TRADE("trade"),
     ORDERBOOK("orderbook"),

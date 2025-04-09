@@ -1,11 +1,11 @@
 package com.coing.infra.upbit.util
 
 import com.coing.domain.coin.market.service.MarketCacheService
-import com.coing.infra.upbit.dto.UpbitWebSocketFormatDto
-import com.coing.infra.upbit.dto.UpbitWebSocketTicketDto
-import com.coing.infra.upbit.dto.UpbitWebSocketTypeDto
-import com.coing.infra.upbit.enums.EnumUpbitRequestType
-import com.coing.infra.upbit.enums.EnumUpbitWebSocketFormat
+import com.coing.infra.upbit.adapter.websocket.dto.UpbitWebSocketFormatDto
+import com.coing.infra.upbit.adapter.websocket.dto.UpbitWebSocketTicketDto
+import com.coing.infra.upbit.adapter.websocket.dto.UpbitWebSocketTypeDto
+import com.coing.infra.upbit.adapter.websocket.enums.EnumUpbitWebSocketFormat
+import com.coing.infra.upbit.adapter.websocket.enums.EnumUpbitWebSocketRequestType
 import com.fasterxml.jackson.core.JsonProcessingException
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.springframework.stereotype.Component
@@ -18,7 +18,7 @@ class UpbitRequestBuilder(
 ) {
 
     @Throws(JsonProcessingException::class)
-    fun makeRequest(type: EnumUpbitRequestType): String {
+    fun makeWebSocketRequest(type: EnumUpbitWebSocketRequestType): String {
         val codes = marketCacheService.getCachedMarketMap().keys.toList()
         val ticketDto = UpbitWebSocketTicketDto(
             ticket = type.value

@@ -1,4 +1,4 @@
-package com.coing.infra.upbit.dto
+package com.coing.infra.upbit.adapter.websocket.dto
 
 import com.coing.domain.coin.orderbook.entity.Orderbook
 import com.coing.domain.coin.orderbook.entity.OrderbookUnit

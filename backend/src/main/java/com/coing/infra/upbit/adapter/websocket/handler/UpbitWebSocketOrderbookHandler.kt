@@ -1,8 +1,8 @@
-package com.coing.infra.upbit.handler
+package com.coing.infra.upbit.adapter.websocket.handler
 
-import com.coing.infra.upbit.adapter.UpbitDataService
-import com.coing.infra.upbit.dto.UpbitWebSocketOrderbookDto
-import com.coing.infra.upbit.enums.EnumUpbitRequestType
+import com.coing.infra.upbit.adapter.websocket.UpbitWebSocketEventAdapter
+import com.coing.infra.upbit.adapter.websocket.dto.UpbitWebSocketOrderbookDto
+import com.coing.infra.upbit.adapter.websocket.enums.EnumUpbitWebSocketRequestType
 import com.coing.infra.upbit.util.UpbitRequestBuilder
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.slf4j.LoggerFactory
@@ -22,7 +22,7 @@ import java.nio.charset.StandardCharsets
  */
 @Component
 class UpbitWebSocketOrderbookHandler(
-    private val upbitDataService: UpbitDataService,
+    private val upbitWebSocketEventAdapter: UpbitWebSocketEventAdapter,
     private val upbitRequestBuilder: UpbitRequestBuilder,
     private val objectMapper: ObjectMapper = ObjectMapper(),
 ) : BinaryWebSocketHandler() {
@@ -36,7 +36,7 @@ class UpbitWebSocketOrderbookHandler(
      */
     override fun afterConnectionEstablished(session: WebSocketSession) {
         log.info("Upbit WebSocket Orderbook connection established.")
-        val subscribeMessage = upbitRequestBuilder.makeRequest(EnumUpbitRequestType.ORDERBOOK)
+        val subscribeMessage = upbitRequestBuilder.makeWebSocketRequest(EnumUpbitWebSocketRequestType.ORDERBOOK)
         log.info("Sending subscription message: {}", subscribeMessage)
         session.sendMessage(TextMessage(subscribeMessage))
     }
@@ -65,7 +65,7 @@ class UpbitWebSocketOrderbookHandler(
                 return
             }
             val orderbookDto = objectMapper.readValue(payload, UpbitWebSocketOrderbookDto::class.java)
-            upbitDataService.handleOrderbookEvent(orderbookDto)
+            upbitWebSocketEventAdapter.handleOrderbookEvent(orderbookDto)
         } catch (e: Exception) {
             log.error("Error processing message: {}", payload, e)
         }
