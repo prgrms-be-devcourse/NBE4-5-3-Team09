@@ -1,6 +1,6 @@
 package com.coing.domain.coin.orderbook.service;
 
-import com.coing.domain.coin.common.port.DataHandler
+import com.coing.domain.coin.common.port.CoinDataHandler
 import com.coing.domain.coin.orderbook.dto.OrderbookDto
 import com.coing.domain.coin.orderbook.entity.Orderbook
 import org.slf4j.LoggerFactory
@@ -12,7 +12,7 @@ import java.util.concurrent.ConcurrentHashMap
 @Service
 class OrderbookService(
 	private val messagingTemplate: SimpMessageSendingOperations
-	) : DataHandler<Orderbook> {
+	) : CoinDataHandler<Orderbook> {
 
 	private val orderbookCache: MutableMap<String, OrderbookDto> = ConcurrentHashMap()
 	private val lastSentTime: MutableMap<String, Long> = ConcurrentHashMap()

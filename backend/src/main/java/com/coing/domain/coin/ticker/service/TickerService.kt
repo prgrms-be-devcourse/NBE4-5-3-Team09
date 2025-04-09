@@ -1,6 +1,6 @@
 package com.coing.domain.coin.ticker.service
 
-import com.coing.domain.coin.common.port.DataHandler
+import com.coing.domain.coin.common.port.CoinDataHandler
 import com.coing.domain.coin.market.service.MarketService
 import com.coing.domain.coin.ticker.dto.TickerDto
 import com.coing.domain.coin.ticker.entity.Ticker
@@ -16,7 +16,7 @@ class TickerService(
     private val messageUtil: MessageUtil,
     private val marketService: MarketService,
     private val messagingTemplate: SimpMessageSendingOperations,
-) : DataHandler<Ticker> {
+) : CoinDataHandler<Ticker> {
     private val tickerCache = ConcurrentHashMap<String, TickerDto>()
     private val lastSentTime = ConcurrentHashMap<String, Long>()
     private val throttleIntervalMs = 200L

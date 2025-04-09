@@ -1,6 +1,6 @@
 package com.coing.domain.coin.trade.service
 
-import com.coing.domain.coin.common.port.DataHandler
+import com.coing.domain.coin.common.port.CoinDataHandler
 import com.coing.domain.coin.trade.dto.TradeDto
 import com.coing.domain.coin.trade.entity.Trade
 import com.coing.global.exception.BusinessException
@@ -18,7 +18,7 @@ import java.util.concurrent.ConcurrentLinkedQueue
 class TradeService(
     private val simpMessageSendingOperations: SimpMessageSendingOperations,
     private val messageUtil: MessageUtil
-): DataHandler<Trade> {
+): CoinDataHandler<Trade> {
 
     private val tradeListCache = ConcurrentHashMap<String, ConcurrentLinkedQueue<TradeDto>>()
     private val vwapCache = ConcurrentHashMap<String, Double>()
