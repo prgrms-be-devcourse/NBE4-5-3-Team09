@@ -1,5 +1,5 @@
 package com.coing.domain.coin.common.port
 
-interface DataHandler<T> {
+interface CoinDataHandler<T> {
     fun update(data: T)
 }

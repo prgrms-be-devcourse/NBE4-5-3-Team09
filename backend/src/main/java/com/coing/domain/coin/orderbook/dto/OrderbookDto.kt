@@ -1,11 +1,12 @@
 package com.coing.domain.coin.orderbook.dto
 
+import com.coing.domain.coin.common.port.CodeDto
 import com.coing.domain.coin.orderbook.entity.Orderbook
 import com.coing.domain.coin.orderbook.entity.OrderbookUnit
 
 data class OrderbookDto(
     val type: String,                        // "orderbook"
-    val code: String,                        // 마켓 코드 (ex. KRW-BTC)
+    override val code: String,                        // 마켓 코드 (ex. KRW-BTC)
     val totalAskSize: Double,                // 호가 매도 총 잔량
     val totalBidSize: Double,                // 호가 매수 총 잔량
     val orderbookUnits: List<OrderbookUnit>, // 상세 호가 정보 목록
@@ -15,7 +16,7 @@ data class OrderbookDto(
     val spread: Double,                      // 매도/매수 호가 차이
     val imbalance: Double,                   // 잔량 불균형
     val liquidityDepth: Double               // ±X% 유동성 비율
-) {
+) : CodeDto{
     companion object {
         fun from(orderbook: Orderbook): OrderbookDto = OrderbookDto(
             type = orderbook.type,

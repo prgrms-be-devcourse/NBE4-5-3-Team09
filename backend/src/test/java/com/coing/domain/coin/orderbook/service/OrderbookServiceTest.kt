@@ -1,5 +1,6 @@
 package com.coing.domain.coin.orderbook.service
 
+import com.coing.domain.coin.common.port.EventPublisher
 import com.coing.domain.coin.orderbook.dto.OrderbookDto
 import com.coing.domain.coin.orderbook.entity.Orderbook
 import com.coing.domain.coin.orderbook.entity.OrderbookUnit
@@ -7,17 +8,19 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
-import org.mockito.kotlin.*
-import org.springframework.messaging.simp.SimpMessageSendingOperations
+import org.mockito.kotlin.argumentCaptor
+import org.mockito.kotlin.mock
+import org.mockito.kotlin.times
+import org.mockito.kotlin.verify
 
 class OrderbookServiceTest {
-    private val messagingTemplate: SimpMessageSendingOperations = mock()
+    private val orderbookPublisher: EventPublisher<OrderbookDto> = mock()
     private lateinit var orderbookService: OrderbookService
     private lateinit var testOrderbook: Orderbook
 
     @BeforeEach
     fun setUp() {
-        orderbookService = OrderbookService(messagingTemplate)
+        orderbookService = OrderbookService(orderbookPublisher)
         val unit = OrderbookUnit(
             askPrice = 100.0,
             bidPrice = 90.0,
@@ -46,8 +49,8 @@ class OrderbookServiceTest {
         orderbookService.update(testOrderbook)
 
         // then
-        verify(messagingTemplate, times(1))
-            .convertAndSend(eq("/sub/coin/orderbook/KRW-BTC"), captor.capture())
+        verify(orderbookPublisher, times(1))
+            .publish(captor.capture())
         assertEquals("KRW-BTC", captor.firstValue.code)
     }
 
@@ -63,7 +66,7 @@ class OrderbookServiceTest {
         // then
         val expectedChannel = "/sub/coin/orderbook/${testOrderbook.code}"
         argumentCaptor<OrderbookDto>().apply {
-            verify(messagingTemplate, times(1)).convertAndSend(eq(expectedChannel), capture())
+            verify(orderbookPublisher, times(1)).publish(capture())
             val sentDto = firstValue
 
             assertEquals("orderbook", sentDto.type)

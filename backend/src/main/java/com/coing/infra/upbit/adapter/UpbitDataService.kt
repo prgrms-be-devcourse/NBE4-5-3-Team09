@@ -1,6 +1,6 @@
 package com.coing.infra.upbit.adapter
 
-import com.coing.domain.coin.common.port.DataHandler
+import com.coing.domain.coin.common.port.CoinDataHandler
 import com.coing.domain.coin.orderbook.entity.Orderbook
 import com.coing.domain.coin.ticker.entity.Ticker
 import com.coing.domain.coin.trade.entity.Trade
@@ -18,25 +18,25 @@ import org.springframework.stereotype.Service
  */
 @Service
 class UpbitDataService(
-    private val orderbookDataHandler: DataHandler<Orderbook>,
-    private val tickerDataHandler: DataHandler<Ticker>,
-    private val tradeDataHandler: DataHandler<Trade>,
+    private val orderbookCoinDataHandler: CoinDataHandler<Orderbook>,
+    private val tickerCoinDataHandler: CoinDataHandler<Ticker>,
+    private val tradeCoinDataHandler: CoinDataHandler<Trade>,
 ) {
     private val log = LoggerFactory.getLogger(this::class.java)
 
     fun handleOrderbookEvent(dto: UpbitWebSocketOrderbookDto) {
         val orderbook = dto.toEntity()
-        orderbookDataHandler.update(orderbook)
+        orderbookCoinDataHandler.update(orderbook)
     }
 
     fun handleTickerEvent(dto: UpbitWebSocketTickerDto) {
         // double oneMinuteRate = tickerService.calculateOneMinuteRate(dto.getCode(), dto.getTradePrice());
         val ticker: Ticker = dto.toEntity()
-        tickerDataHandler.update(ticker)
+        tickerCoinDataHandler.update(ticker)
     }
 
     fun handleTradeEvent(dto: UpbitWebSocketTradeDto) {
         val trade = dto.toEntity()
-        tradeDataHandler.update(trade)
+        tradeCoinDataHandler.update(trade)
     }
 }
