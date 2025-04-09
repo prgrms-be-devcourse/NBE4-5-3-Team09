@@ -35,7 +35,7 @@ class MarketController(
 	@Operation(summary = "기준 통화별 마켓 전체 조회")
 	@GetMapping
 	fun getMarketsByQuote(
-		@AuthenticationPrincipal principal: CustomUserPrincipal,
+		@AuthenticationPrincipal principal: CustomUserPrincipal?,
 		@RequestParam("type") type: String,
 		@ParameterObject @PageableDefault(sort = ["code"]) pageable: Pageable
 	): ResponseEntity<@NotNull PagedResponse<MarketResponse>> {

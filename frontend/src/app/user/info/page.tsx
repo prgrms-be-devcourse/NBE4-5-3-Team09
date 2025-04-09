@@ -67,6 +67,10 @@ export default function UserInfoPage() {
     }
   };
 
+  const handleKakaoSignOut = () => {
+    window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/oauth2/authorization/kakao?purpose=delete_account`;
+  };
+
   if (fetching) {
     return <div className="w-full flex justify-center bg-background">로딩 중...</div>;
   }
@@ -127,6 +131,35 @@ export default function UserInfoPage() {
                 <AlertDialogAction
                   className="bg-destructive hover:bg-destructive cursor-pointer"
                   onClick={handleSignOut}
+                >
+                  탈퇴
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
+        <div className="mt-6 flex flex-col gap-4">
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                disabled={loading}
+                className="w-full py-3 bg-destructive hover:bg-destructive cursor-pointer"
+              >
+                {loading ? '처리 중...' : '소셜 회원 탈퇴'}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>회원 탈퇴 확인</AlertDialogTitle>
+                <AlertDialogDescription>
+                  정말 회원 탈퇴 하시겠습니까? 이 작업은 복구할 수 없습니다.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel className="cursor-pointer">취소</AlertDialogCancel>
+                <AlertDialogAction
+                  className="bg-destructive hover:bg-destructive cursor-pointer"
+                  onClick={handleKakaoSignOut}
                 >
                   탈퇴
                 </AlertDialogAction>
