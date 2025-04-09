@@ -7,6 +7,7 @@ import com.coing.domain.chat.service.ChatService
 import com.coing.global.exception.doc.ApiErrorCodeExamples
 import com.coing.global.exception.doc.ErrorCode
 import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 
+@Tag(name = "Chat API", description = "채팅 관련 API 엔드포인트")
 @RestController
 @RequestMapping("/api/chat")
 class ChatController(

@@ -8,11 +8,13 @@ import com.coing.global.exception.doc.ApiErrorCodeExamples
 import com.coing.global.exception.doc.ErrorCode
 import com.coing.util.BasicResponse
 import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.*
 
+@Tag(name = "ChatReport API", description = "채팅 신고 관련 API 엔드포인트")
 @RestController
 @RequestMapping("/api/chat/messages")
 class ChatReportController(

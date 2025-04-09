@@ -2,6 +2,7 @@ package com.coing.domain.coin.candle.controller
 
 import com.coing.domain.coin.candle.dto.CandleDto
 import com.coing.domain.coin.candle.service.UpbitCandleService
+import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
@@ -9,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 
+@Tag(name = "Candle API", description = "캔들 차트 관련 API 엔드포인트")
 @RestController
 @RequestMapping("/api/candles")
 class CandleController(

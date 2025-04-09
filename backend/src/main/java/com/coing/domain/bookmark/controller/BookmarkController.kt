@@ -10,6 +10,7 @@ import com.coing.global.exception.doc.ErrorCode
 import com.coing.util.BasicResponse
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.security.SecurityRequirement
+import io.swagger.v3.oas.annotations.tags.Tag
 import org.springdoc.core.annotations.ParameterObject
 import org.springframework.data.domain.Pageable
 import org.springframework.data.web.PageableDefault
@@ -19,6 +20,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.*
 
+@Tag(name = "BookMark API", description = "북마크 관련 API 엔드포인트")
 @RestController
 @RequestMapping("/api")
 class BookmarkController(

@@ -43,8 +43,7 @@ class SecurityConfig(
 			.authorizeHttpRequests { auth ->
 				auth
 					.requestMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")
-					.requestMatchers("/api/auth/**", "/oauth2/**").permitAll()
-					.anyRequest().authenticated()
+				    .anyRequest().permitAll()
 			}
 			.exceptionHandling { it.authenticationEntryPoint(customAuthenticationEntryPoint) }
 			.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter::class.java)
