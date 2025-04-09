@@ -22,13 +22,16 @@ class TickerService(
     private val messageUtil: MessageUtil,
     private val marketService: MarketService,
     private val eventPublisher: EventPublisher<TickerDto>,
+    private val pushService: PushService
 ) : CoinDataHandler<Ticker> {
     private val tickerListCache: MutableMap<String, Deque<TickerDto>> = ConcurrentHashMap()
     private val lastSentTime = ConcurrentHashMap<String, Long>()
+    private val lastPushSentTime = ConcurrentHashMap<String, Long>()
 
     companion object {
         private const val THROTTLE_INTERVAL_MS = 200L
         private const val SLIDING_WINDOW_MS = 60_000L
+        private const val PUSH_THROTTLE_INTERVAL_MS = 60_000L
     }
 
     override fun update(data: Ticker) {
@@ -36,6 +39,7 @@ class TickerService(
         val dto = TickerDto.from(data, marketService.getCachedMarketByCode(code))
         updateTickerListCache(code, dto)
         publish(dto)
+        pushMessage(dto)
     }
 
     fun getTicker(market: String): TickerDto {
@@ -84,6 +88,28 @@ class TickerService(
             ?: 0.0
     }
 
+    fun pushMessage(dto: TickerDto) {
+        val market = dto.code
+        val now = System.currentTimeMillis()
+        val lastSent = lastPushSentTime[market] ?: 0L
+
+        if (now - lastSent < PUSH_THROTTLE_INTERVAL_MS) return
+
+        val (_, messageKey) = when {
+            dto.oneMinuteRate >= 0.05 -> 0.05 to "high.rate"
+            dto.oneMinuteRate <= -0.05 -> -0.05 to "low.rate"
+            else -> return
+        }
+
+        CoroutineScope(Dispatchers.IO).launch {
+            pushService.sendAsync(
+                market,
+                messageUtil.resolveMessage(messageKey),
+                market
+            )
+            lastPushSentTime[market] = now
+        }
+    }
 
 
     fun publish(dto: TickerDto) {
