@@ -262,6 +262,22 @@ class UserController(
         return ResponseEntity.ok(mapOf("status" to "success", "message" to "소셜 로그인 성공"))
     }
 
+    @Operation(summary = "소셜 로그인 후 탈퇴 처리")
+    @PostMapping("/social-login/redirect/quit")
+    @ApiErrorCodeExamples(ErrorCode.EMPTY_TOKEN_PROVIDED)
+    fun redirectSocialQuit(
+        @RequestParam("quitToken") quitToken: String,
+        response: HttpServletResponse
+    ): ResponseEntity<Any> {
+        val token = "quitToken:$quitToken"
+        val userIdStr = authTokenService.getUserIdWithTempToken(token)
+            ?: return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(mapOf("status" to "error", "message" to "유효하지 않은 토큰입니다."))
+        val userId = UUID.fromString(userIdStr)
+        userService.socialQuit(userId)
+        return ResponseEntity.ok(mapOf("status" to "success", "message" to "탈퇴 성공"))
+    }
+
     private fun issuedToken(response: HttpServletResponse, user: UserResponse) {
         val accessToken = authTokenService.genAccessToken(user)
         val refreshToken = authTokenService.genRefreshToken(user)
