@@ -6,6 +6,6 @@ import org.springframework.stereotype.Repository
 import java.time.LocalDateTime
 
 @Repository
-interface ChatMessageRepository : JpaRepository<ChatMessage, Long> {
+interface ChatMessageRepository : JpaRepository<ChatMessage, String> {
     fun findAllByChatRoomIdAndTimestampAfter(chatRoomId: Long, timestamp: LocalDateTime): List<ChatMessage>
 }

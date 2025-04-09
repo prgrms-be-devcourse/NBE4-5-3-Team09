@@ -11,16 +11,15 @@ import java.time.LocalDateTime
 @NoArg
 open class ChatMessage(
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    open var id: Long? = null,
+    open var id: String? = null,
 
     // 이 메시지가 속한 채팅방
-    @ManyToOne(fetch = FetchType.LAZY, cascade = [CascadeType.REMOVE])
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "chat_room_id", nullable = false)
     open var chatRoom: ChatRoom? = null,
 
     // 메시지를 보낸 유저
-    @ManyToOne(fetch = FetchType.LAZY, cascade = [CascadeType.REMOVE])
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     open var sender: User? = null,
 
@@ -30,4 +29,14 @@ open class ChatMessage(
 
     // 메시지 전송 시간
     open var timestamp: LocalDateTime? = null
-) : BaseEntity()
+
+) : BaseEntity() {
+
+    // 채팅 메시지에 대한 신고를 관리하는 연관관계 추가
+    @OneToMany(
+        mappedBy = "chatMessage",
+        cascade = [CascadeType.ALL],
+        orphanRemoval = true
+    )
+    open var reports: MutableList<ChatMessageReport> = mutableListOf()
+}
