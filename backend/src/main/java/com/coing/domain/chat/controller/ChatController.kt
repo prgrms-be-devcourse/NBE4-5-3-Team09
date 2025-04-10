@@ -43,7 +43,7 @@ class ChatController(
                 id = message.id,
                 sender = message.sender?.name ?: "",
                 content = message.content,
-                timestamp = message.timestamp?.toString() ?: ""
+                timestamp = message.timestamp?.atZone(ZoneId.of("Asia/Seoul"))?.toInstant()?.toEpochMilli()?.toString() ?: ""
 
             )
         }
