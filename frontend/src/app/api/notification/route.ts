@@ -1,16 +1,17 @@
-import { messaging, getToken } from '@/lib/firebase/firebase';
+import { getToken, messaging } from '@/lib/firebase/firebase';
 import { ensureServiceWorkerRegistered } from '@/lib/firebase/register-sw';
+import { client } from '@/lib/api/client';
+import type { components } from '@/lib/api/generated/schema';
+
+type OneMinuteRate = components['schemas']['SubscribeInfo']['oneMinuteRate'];
+type SubscribeRequest = components['schemas']['SubscribeRequest'];
+type PushTokenSaveRequest = components['schemas']['PushTokenSaveRequest'];
 
 let isSubscribing = false;
 
+// 푸시 토큰 초기 등록 (POST /api/push/register)
 export async function subscribeUserToPush(accessToken: string | null) {
-  if (isSubscribing) {
-    return;
-  }
-
-  if (localStorage.getItem('push_subscribed') === 'true') {
-    return;
-  }
+  if (isSubscribing || localStorage.getItem('push_subscribed') === 'true') return;
 
   isSubscribing = true;
 
@@ -28,14 +29,18 @@ export async function subscribeUserToPush(accessToken: string | null) {
     });
 
     if (token) {
-      await fetch(process.env.NEXT_PUBLIC_API_URL + '/api/push/subscribe', {
-        method: 'POST',
+      const body: PushTokenSaveRequest = { token };
+
+      const { error } = await client.POST('/api/push/register', {
+        body,
         headers: {
-          'Content-Type': 'application/json',
           Authorization: `Bearer ${accessToken}`,
         },
-        body: JSON.stringify({ token }),
       });
+
+      if (error) {
+        throw new Error('푸시 토큰 등록 실패');
+      }
 
       localStorage.setItem('push_subscribed', 'true');
       console.log('푸시 구독 완료');
@@ -47,4 +52,53 @@ export async function subscribeUserToPush(accessToken: string | null) {
   } finally {
     isSubscribing = false;
   }
+}
+
+// 알림 설정 변경 (POST /api/push/subscribe)
+export async function updatePushTopics(
+  accessToken: string,
+  market: string,
+  subscribeRate: OneMinuteRate,
+  unsubscribeRate: OneMinuteRate,
+) {
+  const body: SubscribeRequest = {
+    market,
+    subscribeInfo: { oneMinuteRate: subscribeRate },
+    unsubscribeInfo: { oneMinuteRate: unsubscribeRate },
+  };
+
+  const { error } = await client.POST('/api/push/subscribe', {
+    body,
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+
+  if (error) {
+    console.error('rate 구독 변경 실패:', error);
+    throw error;
+  }
+
+  console.log('알림 rate 구독 변경 완료');
+}
+
+// 현재 구독 정보 조회 API
+export async function fetchSubscribeInfo(
+  accessToken: string,
+  market: string,
+): Promise<components['schemas']['SubscribeInfo']> {
+  const { data, error } = await client.GET('/api/push/subscribe-info', {
+    params: {
+      query: { market },
+    },
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+
+  if (error || !data) {
+    throw new Error('구독 정보를 가져오는 데 실패했습니다.');
+  }
+
+  return data;
 }
