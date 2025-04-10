@@ -4,8 +4,15 @@ import com.coing.domain.coin.common.port.CoinDataHandler
 import com.coing.domain.coin.common.port.EventPublisher
 import com.coing.domain.coin.trade.dto.TradeDto
 import com.coing.domain.coin.trade.entity.Trade
+import com.coing.domain.notification.entity.TradeImpact
+import com.coing.domain.notification.service.PushService
 import com.coing.global.exception.BusinessException
 import com.coing.util.MessageUtil
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import lombok.extern.slf4j.Slf4j
 import org.springframework.http.HttpStatus
 import org.springframework.scheduling.annotation.Scheduled
@@ -17,8 +24,10 @@ import java.util.concurrent.ConcurrentLinkedQueue
 @Slf4j
 class TradeService(
     private val eventPublisher: EventPublisher<TradeDto>,
-    private val messageUtil: MessageUtil
-): CoinDataHandler<Trade> {
+    private val messageUtil: MessageUtil,
+    private val pushService: PushService,
+    private val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO)
+) : CoinDataHandler<Trade> {
 
     private val tradeListCache = ConcurrentHashMap<String, ConcurrentLinkedQueue<TradeDto>>()
     private val vwapCache = ConcurrentHashMap<String, Double>()
@@ -26,9 +35,14 @@ class TradeService(
     private val totalTradeNumberCache = ConcurrentHashMap<String, Double>()
     private val prevTradePriceCache = ConcurrentHashMap<String, Double>()
     private val lastSentTime = ConcurrentHashMap<String, Long>()
+    private val lastPushSentTime = ConcurrentHashMap<String, Long>()
+    private val pushMutexMap = ConcurrentHashMap<String, Mutex>()
 
-    private val throttleIntervalMs = 200L
-    private val maxListSize = 20
+    companion object {
+        private const val THROTTLE_INTERVAL_MS = 200L
+        private const val MAX_LIST_SIZE = 20
+        private const val PUSH_THROTTLE_INTERVAL_MS = 60_000L
+    }
 
     override fun update(data: Trade) {
         val market = data.code
@@ -45,12 +59,16 @@ class TradeService(
 
         val dto = TradeDto.of(data, vwap, averageTradeSize, tradeImpact)
 
+        updateTradeListCache(market, dto)
         publish(dto)
+        pushMessage(dto)
+    }
 
+    private fun updateTradeListCache(market: String, dto: TradeDto) {
         tradeListCache.compute(market) { _, queue ->
-            val newQueue = queue ?:  ConcurrentLinkedQueue<TradeDto>()
+            val newQueue = queue ?: ConcurrentLinkedQueue<TradeDto>()
             newQueue.add(dto)
-            while (newQueue.size > maxListSize) newQueue.poll()
+            while (newQueue.size > MAX_LIST_SIZE) newQueue.poll()
             newQueue
         }
     }
@@ -66,12 +84,45 @@ class TradeService(
         return queue.toList()
     }
 
+    fun pushMessage(dto: TradeDto) {
+        val market = dto.code
+        val now = System.currentTimeMillis()
+        val mutex = pushMutexMap.computeIfAbsent(market) { Mutex() }
+
+        coroutineScope.launch {
+            mutex.withLock {
+                val lastSent = lastPushSentTime[market] ?: 0L
+                if (now - lastSent < PUSH_THROTTLE_INTERVAL_MS) return@withLock
+
+                val absImpact = kotlin.math.abs(dto.tradeImpact)
+                val direction = if (dto.tradeImpact > 0) "HIGH" else "LOW"
+                val messageKey = if (dto.tradeImpact > 0) "high.trade" else "low.trade"
+
+                TradeImpact.entries
+                    .filter { it != TradeImpact.NONE && absImpact >= it.threshold }
+                    .forEach { impact ->
+                        val topic = "$market-$direction-${impact.name}"
+                        val body = String.format(messageUtil.resolveMessage(messageKey), impact.name)
+
+                        pushService.sendAsync(
+                            title = market,
+                            body = body,
+                            marketCode = market,
+                            topic = topic
+                        )
+                    }
+
+                lastPushSentTime[market] = now
+            }
+        }
+    }
+
     fun publish(dto: TradeDto) {
         val market = dto.code
         val now = System.currentTimeMillis()
         val lastSent = lastSentTime[market] ?: 0L
 
-        if (now - lastSent >= throttleIntervalMs) {
+        if (now - lastSent >= THROTTLE_INTERVAL_MS) {
             eventPublisher.publish(dto)
             lastSentTime[market] = now
         }

@@ -42,7 +42,9 @@ class PushController(
             userId = principal.id,
             marketCode = request.market,
             newRate = request.subscribeInfo.oneMinuteRate,
-            oldRate = request.unsubscribeInfo.oneMinuteRate
+            oldRate = request.unsubscribeInfo.oneMinuteRate,
+            newImpact = request.subscribeInfo.tradeImpact,
+            oldImpact = request.unsubscribeInfo.tradeImpact
         )
         return ResponseEntity.ok().build()
     }
@@ -61,7 +63,7 @@ class PushController(
         @RequestBody request: PushMessage,
     ): ResponseEntity<Void> {
         CoroutineScope(Dispatchers.IO).launch {
-            pushService.sendAsync(request.title, request.body, "KRW-BTC", "KRW-BTC-HIGH-1")
+            pushService.sendAsync(request.title, request.body, "KRW-BTC", "KRW-BTC-HIGH-ONE")
         }
         return ResponseEntity.ok().build()
     }

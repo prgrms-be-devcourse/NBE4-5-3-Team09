@@ -5,6 +5,7 @@ import com.coing.domain.notification.dto.SubscribeInfo
 import com.coing.domain.notification.entity.OneMinuteRate
 import com.coing.domain.notification.entity.PushToken
 import com.coing.domain.notification.entity.Subscribe
+import com.coing.domain.notification.entity.TradeImpact
 import com.coing.domain.notification.repository.PushTokenRepository
 import com.coing.domain.notification.repository.SubscribeRepository
 import com.coing.domain.user.repository.UserRepository
@@ -12,7 +13,9 @@ import com.coing.global.exception.BusinessException
 import com.coing.util.MessageUtil
 import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.messaging.Message
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
@@ -27,7 +30,9 @@ class PushService(
     private val pushTokenRepository: PushTokenRepository,
     private val subscribeRepository: SubscribeRepository,
     private val messageUtil: MessageUtil,
-    private val firebaseMessaging: FirebaseMessaging
+    private val firebaseMessaging: FirebaseMessaging,
+    private val subscribeManager: SubscribeManager,
+    private val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO)
 ) {
     private val log = LoggerFactory.getLogger(PushService::class.java)
 
@@ -43,7 +48,14 @@ class PushService(
     }
 
     @Transactional
-    fun updateSubscription(userId: UUID, marketCode: String, newRate: OneMinuteRate, oldRate: OneMinuteRate) {
+    fun updateSubscription(
+        userId: UUID,
+        marketCode: String,
+        newRate: OneMinuteRate,
+        oldRate: OneMinuteRate,
+        newImpact: TradeImpact,
+        oldImpact: TradeImpact
+    ) {
         val user = userRepository.findById(userId)
             .orElseThrow { BusinessException(messageUtil.resolveMessage("member.not.found"), HttpStatus.NOT_FOUND) }
         val market = marketRepository.findByCode(marketCode)
@@ -51,33 +63,27 @@ class PushService(
 
         val tokens = pushTokenRepository.findAllByUserId(user.id!!).map { it.token }
 
-
-        // topic 구독 해지
-        if (oldRate != OneMinuteRate.NONE) {
-            val level = oldRate.toLevel()
-            firebaseMessaging.unsubscribeFromTopic(tokens, "$marketCode-HIGH-$level")
-            firebaseMessaging.unsubscribeFromTopic(tokens, "$marketCode-LOW-$level")
+        // 코루틴으로 외부 작업 넘기기
+        coroutineScope.launch {
+            subscribeManager.updateTopicsAsync(tokens, marketCode, newRate, oldRate, newImpact, oldImpact)
         }
 
-        // topic 구독 신청
-        if (newRate != OneMinuteRate.NONE) {
-            val level = newRate.toLevel()
-            firebaseMessaging.subscribeToTopic(tokens, "$marketCode-HIGH-$level")
-            firebaseMessaging.subscribeToTopic(tokens, "$marketCode-LOW-$level")
-        }
-
-        // 구독 테이블 업데이트
+        // 구독 정보는 즉시 업데이트
         val subscribe = subscribeRepository.findByUser_IdAndMarket_Code(user.id, market.code)
             ?: Subscribe(user = user, market = market)
-        subscribe.oneMinuteRate = newRate
 
+        subscribe.oneMinuteRate = newRate
+        subscribe.tradeImpact = newImpact
         subscribeRepository.save(subscribe)
     }
 
     @Transactional(readOnly = true)
     fun getSubscribeInfo(userId: UUID, marketCode: String): SubscribeInfo {
         val subscribe = subscribeRepository.findByUser_IdAndMarket_Code(userId, marketCode)
-        return SubscribeInfo(subscribe?.oneMinuteRate ?: OneMinuteRate.NONE)
+        return SubscribeInfo(
+            oneMinuteRate = subscribe?.oneMinuteRate ?: OneMinuteRate.NONE,
+            tradeImpact = subscribe?.tradeImpact ?: TradeImpact.NONE
+        )
     }
 
     suspend fun sendAsync(title: String, body: String, marketCode: String, topic: String) =
