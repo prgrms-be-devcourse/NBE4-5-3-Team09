@@ -13,12 +13,13 @@ import com.coing.domain.notification.service.PushService
 import com.coing.global.exception.BusinessException
 import com.coing.util.MessageUtil
 import com.fasterxml.jackson.databind.ObjectMapper
-import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.extension.ExtendWith
-import org.mockito.InjectMocks
 import org.mockito.Mock
 import org.mockito.Mockito.*
 import org.mockito.junit.jupiter.MockitoExtension
@@ -44,8 +45,10 @@ class TickerServiceTest {
     @Mock
     private lateinit var pushService: PushService
 
-    @InjectMocks
     private lateinit var tickerService: TickerService
+
+    private val testDispatcher = StandardTestDispatcher()
+    private val testScope = CoroutineScope(testDispatcher)
 
     @Mock
     private lateinit var mapper: ObjectMapper
@@ -56,6 +59,13 @@ class TickerServiceTest {
 
     @BeforeEach
     fun setUp() {
+        tickerService = TickerService(
+            messageUtil,
+            marketService,
+            tickerPublisher,
+            pushService,
+            testScope
+        )
         mapper = ObjectMapper()
         val now = System.currentTimeMillis()
         oldTestTicker = getTestTicker(100.0, now - 61_000)
@@ -64,11 +74,8 @@ class TickerServiceTest {
     }
 
     @AfterEach
-    fun clearThrottleCache() {
-        val field = TickerService::class.java.getDeclaredField("lastPushSentTime")
-        field.isAccessible = true
-        val map = field.get(tickerService) as MutableMap<*, *>
-        map.clear()
+    fun clear() {
+        testScope.cancel() // 테스트 종료 시 코루틴 정리
     }
 
     private fun getTestMarket(): Market {
@@ -174,16 +181,23 @@ class TickerServiceTest {
 
     @Test
     @DisplayName("pushMessage 성공 - 변동률이 임계값 이상이면 푸시 전송")
-    fun pushMessage_Success() = runTest {
-        val dto = TickerDto.from(testTicker, testMarket)
-        val message = "급등 알림"
-        `when`(messageUtil.resolveMessage("high.rate")).thenReturn(message)
+    fun pushMessage_Success() = runTest(testDispatcher) {
+        val now = System.currentTimeMillis()
+
+        val ticker = getTestTicker(tradePrice = 110.0, timestamp = now)
+        val dto = TickerDto.from(ticker, testMarket)
+
+        `when`(messageUtil.resolveMessage("high.rate")).thenReturn("급등 알림 %s")
 
         tickerService.pushMessage(dto)
+        testDispatcher.scheduler.advanceUntilIdle() // 모든 코루틴이 완료될 때까지 기다림
 
-        advanceUntilIdle() // 모든 코루틴이 끝날 때까지 기다림
-
-        verify(pushService, times(1)).sendAsync(dto.code, message, dto.code)
+        verify(pushService).sendAsync(
+            title = "비트코인 Bitcoin",
+            body = "급등 알림 5",
+            marketCode = "KRW-BTC",
+            topic = "KRW-BTC-HIGH-5"
+        )
     }
 
     @Test

@@ -24,7 +24,8 @@ class TickerService(
     private val messageUtil: MessageUtil,
     private val marketService: MarketService,
     private val eventPublisher: EventPublisher<TickerDto>,
-    private val pushService: PushService
+    private val pushService: PushService,
+    private val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO)
 ) : CoinDataHandler<Ticker> {
     private val tickerListCache: MutableMap<String, Deque<TickerDto>> = ConcurrentHashMap()
     private val lastSentTime = ConcurrentHashMap<String, Long>()
@@ -110,7 +111,7 @@ class TickerService(
         // 락 가져오기 (없으면 새로 생성)
         val mutex = pushMutexMap.computeIfAbsent(market) { Mutex() }
 
-        CoroutineScope(Dispatchers.IO).launch {
+        coroutineScope.launch {
             mutex.withLock {
                 val lastSent = lastPushSentTime[market] ?: 0L
                 if (now - lastSent < PUSH_THROTTLE_INTERVAL_MS) return@withLock
