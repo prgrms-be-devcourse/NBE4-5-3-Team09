@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
+import java.time.ZoneId
 import java.util.*
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.atomic.AtomicLong
@@ -53,7 +54,7 @@ class ChatService(
             chatRoom = chatRoom,
             sender = sender,
             content = content,
-            timestamp = LocalDateTime.now()
+            timestamp = LocalDateTime.now(ZoneId.of("Asia/Seoul"))
         )
 
         // 캐시에 메시지 저장
