@@ -81,6 +81,7 @@ dependencies {
 
     implementation("com.google.firebase:firebase-admin:9.4.3")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.1")
+    implementation("org.springframework.retry:spring-retry")
 }
 
 tasks.named<Test>("test") {
