@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 import java.time.LocalDateTime
+import java.time.ZoneId
 import java.time.ZoneOffset
 
 @Tag(name = "Chat API", description = "채팅 관련 API 엔드포인트")
@@ -42,7 +43,8 @@ class ChatController(
                 id = message.id,
                 sender = message.sender?.name ?: "",
                 content = message.content,
-                timestamp = message.timestamp?.toInstant(ZoneOffset.UTC)?.toEpochMilli()?.toString() ?: ""
+                timestamp = message.timestamp?.atZone(ZoneId.of("Asia/Seoul"))?.toInstant()?.toEpochMilli()?.toString() ?: ""
+
             )
         }
         return ResponseEntity.ok(dtos)

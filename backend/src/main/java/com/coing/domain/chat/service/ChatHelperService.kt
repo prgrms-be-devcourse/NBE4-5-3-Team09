@@ -6,6 +6,7 @@ import com.coing.domain.user.service.AuthTokenService
 import org.slf4j.LoggerFactory
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor
 import org.springframework.stereotype.Service
+import java.time.ZoneId
 import java.time.ZoneOffset
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
@@ -49,7 +50,7 @@ class ChatHelperService(
             id = chatMessage.id,
             sender = chatMessage.sender?.name ?: "",
             content = chatMessage.content,
-            timestamp = chatMessage.timestamp?.toInstant(ZoneOffset.UTC)?.toEpochMilli()?.toString() ?: ""
+            timestamp = chatMessage.timestamp?.atZone(ZoneId.of("Asia/Seoul"))?.toInstant()?.toEpochMilli()?.toString() ?: ""
         )
     }
 

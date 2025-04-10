@@ -93,7 +93,7 @@ export default function AdminDashboardPage() {
                 <td className="border px-4 py-2">{report.chatMessage.sender}</td>
                 <td className="border px-4 py-2">{report.chatMessage.content}</td>
                 <td className="border px-4 py-2">
-                  {new Date(Number(report.chatMessage.timestamp)).toLocaleString()}
+                  {new Date(Number(report.chatMessage.timestamp)).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })}
                 </td>
               </tr>
             ))}
