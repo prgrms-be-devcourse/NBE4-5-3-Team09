@@ -20,6 +20,15 @@ class AdminController(
     private val chatReportService: ChatReportService
 ) {
 
+    // 관리자 권한 확인용 엔드포인트
+    @Operation(summary = "관리자 권한 확인", description = "현재 로그인한 사용자가 관리자 권한을 가지고 있는지 확인합니다.")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+    @GetMapping("/auth-check")
+    fun checkAdminAuthority(): ResponseEntity<Map<String, String>> {
+        // 단순 메시지 반환 등 추가 정보도 전달할 수 있음.
+        return ResponseEntity.ok(mapOf("status" to "success", "message" to "관리자 권한이 확인되었습니다."))
+    }
+
     // ADMIN 권한만 접근할 수 있도록 설정
     @Operation(summary = "신고된 메시지 조회", description = "신고된 메시지를 조회합니다.")
     @ApiErrorCodeExamples(

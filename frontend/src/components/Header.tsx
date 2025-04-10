@@ -61,8 +61,7 @@ export default function Header() {
               <span className="text-xl font-bold text-secondary">Coing</span>
             </div>
           </Link>
-
-          {/* 기본적으로 row, 화면이 작아지면 column으로 변경 */}
+          {/* 기본 네비게이션 */}
           <nav className="flex flex-col md:flex-row md:space-x-4 gap-y-2">
             {navItems.map((item) => (
               <NavLink key={item.href} href={item.href}>
@@ -74,12 +73,23 @@ export default function Header() {
         </div>
 
         <div className="flex items-center space-x-4">
+          {/* 관리자 권한이 있을 때 관리 페이지 버튼 추가 */}
+          {user?.authority === 'ROLE_ADMIN' && (
+            <Button
+              variant="outline"
+              onClick={() => router.push('/admin/dashboard')}
+              className="mr-2 cursor-pointer"
+            >
+              관리 페이지
+            </Button>
+          )}
+
           <Link
             href="/user/info"
             className="flex items-center gap-1 text-sm font-medium text-secondary hover:text-card-foreground cursor-pointer"
           >
             <CircleUser />
-            {user.name}
+            {user?.name || '익명'}
           </Link>
           <div style={{ minHeight: '36px' }}>
             {pathname !== '/user/login' && (
