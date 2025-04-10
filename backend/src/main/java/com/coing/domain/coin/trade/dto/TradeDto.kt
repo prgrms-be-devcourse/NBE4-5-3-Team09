@@ -27,7 +27,9 @@ data class TradeDto(
     val bestBidSize: Double,
     val vwap: Double,
     val averageTradeSize: Double,
-    val tradeImpact: Double
+    val tradeImpact: Double,
+    var isFallback: Boolean = false,
+    var lastUpdate: String? = null
 ) : CodeDto {
     companion object {
         fun of(trade: Trade, vwap: Double, averageTradeSize: Double, tradeImpact: Double): TradeDto =

@@ -97,3 +97,12 @@ naver:
   client:
     id: ${NAVER_CLIENT_ID:default_client_id}
     secret: ${NAVER_CLIENT_SECRET:default_client_secret}
+
+resilience4j:
+  retry:
+    instances:
+      upbitWebSocket:
+        max-attempts: 6
+        wait-duration: 2s
+        enable-exponential-backoff: true
+        exponential-backoff-multiplier: 2

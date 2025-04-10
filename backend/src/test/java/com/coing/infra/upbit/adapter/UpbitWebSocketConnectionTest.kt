@@ -1,6 +1,8 @@
 package com.coing.infra.upbit.adapter
 
+import com.coing.domain.coin.common.dto.FallbackEvent
 import com.coing.infra.upbit.adapter.websocket.UpbitWebSocketConnection
+import com.coing.infra.upbit.adapter.websocket.enums.EnumUpbitWebSocketType
 import com.coing.infra.upbit.adapter.websocket.handler.UpbitWebSocketHandler
 import org.awaitility.Awaitility.await
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -8,8 +10,8 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.whenever
+import org.mockito.kotlin.*
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.web.socket.WebSocketSession
 import org.springframework.web.socket.client.WebSocketClient
 import java.util.concurrent.CompletableFuture
@@ -20,6 +22,8 @@ class UpbitWebSocketConnectionTest {
     private val webSocketClient: WebSocketClient = mock()
     private val handler: UpbitWebSocketHandler = mock()
     private val session: WebSocketSession = mock()
+    private val eventPublisher: ApplicationEventPublisher = mock()
+
 
     private lateinit var connection: UpbitWebSocketConnection
 
@@ -31,7 +35,8 @@ class UpbitWebSocketConnectionTest {
             webSocketClient,
             handler,
             uri,
-            "TEST"
+            EnumUpbitWebSocketType.ORDERBOOK,
+            eventPublisher
         )
     }
 
@@ -48,7 +53,9 @@ class UpbitWebSocketConnectionTest {
         // then: 연결 성공 시 isConnected() == true
         await().atMost(500, TimeUnit.MILLISECONDS).untilAsserted {
             assertTrue(connection.isConnected)
+            verify(eventPublisher, never()).publishEvent(any())
         }
+
     }
 
     @Test
@@ -60,7 +67,11 @@ class UpbitWebSocketConnectionTest {
         whenever(webSocketClient.execute(handler, uri)).thenReturn(future)
 
         // when
-        connection.connect()
+         try {
+            connection.connect()
+        } catch (e: Exception) {
+            // ignore
+        }
 
         // then: 연결 실패 시 isConnected() == false
         await().atMost(500, TimeUnit.MILLISECONDS).untilAsserted {
@@ -76,10 +87,25 @@ class UpbitWebSocketConnectionTest {
             .thenThrow(RuntimeException("Connection Error."))
 
         // when
-        connection.connect()
+         try {
+            connection.connect()
+        } catch (e: Exception) {
+            // ignore
+        }
 
         // Then: 즉시 isConnected = false & call scheduleReconnect()
         assertFalse(connection.isConnected)
+    }
+
+    @Test
+    @DisplayName("WebSocket 연결 실패 - 예외 발생 시 fallbackConnect 확인")
+    fun connectionFailureByThrowing() {
+        val ex = RuntimeException("Immediate failure")
+        connection.fallbackConnect(ex)
+
+        assertFalse(connection.isConnected)
+
+        verify(eventPublisher).publishEvent(isA<FallbackEvent>())
     }
 
 //	@Test

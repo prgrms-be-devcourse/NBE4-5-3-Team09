@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.Mock
 import org.mockito.junit.jupiter.MockitoExtension
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.test.util.ReflectionTestUtils
 import org.springframework.web.socket.client.WebSocketClient
 
@@ -31,6 +32,9 @@ class UpbitWebSocketManagerTest {
     @Mock
     private lateinit var tradeHandler: UpbitWebSocketTradeHandler
 
+    @Mock
+    private lateinit var eventPublisher: ApplicationEventPublisher
+
     private lateinit var service: UpbitWebSocketManager
 
     private val uri = "wss://api.upbit.com/websocket/v1"
@@ -41,7 +45,8 @@ class UpbitWebSocketManagerTest {
             webSocketClient,
             orderbookHandler,
             tickerHandler,
-            tradeHandler
+            tradeHandler,
+            eventPublisher
         )
         ReflectionTestUtils.setField(service, "upbitWebSocketUri", uri)
     }

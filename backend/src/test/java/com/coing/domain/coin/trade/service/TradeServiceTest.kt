@@ -99,4 +99,24 @@ class TradeServiceTest {
         verify(tradePublisher, times(1))
             .publish(dto)
     }
+
+
+    @Test
+    @DisplayName("fallbackUpdate 성공")
+    fun fallbackUpdate() {
+        // given
+        tradeService.update(trade)
+
+        // when
+        tradeService.fallbackUpdate("13:05:22")
+
+        // then
+        val cachedData = tradeService.getTrades("KRW-BTC")
+        kotlin.test.assertTrue(cachedData.first().isFallback)
+        assertEquals("13:05:22", cachedData.first().lastUpdate)
+
+        org.mockito.kotlin.verify(tradePublisher, times(1)).publish(org.mockito.kotlin.argThat {
+            isFallback && lastUpdate == "13:05:22"
+        })
+    }
 }

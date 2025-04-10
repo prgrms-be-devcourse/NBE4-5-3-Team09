@@ -42,6 +42,18 @@ class TickerService(
         pushMessage(dto)
     }
 
+    override fun fallbackUpdate(lastUpdate: String) {
+        tickerListCache.forEach { (code, deque) ->
+            val latest = deque.peekLast()
+            if (latest != null) {
+                latest.isFallback = true
+                latest.lastUpdate = lastUpdate
+                publish(latest)
+            }
+        }
+
+    }
+
     fun getTicker(market: String): TickerDto {
         val deque = tickerListCache[market]
         if (deque.isNullOrEmpty()) {

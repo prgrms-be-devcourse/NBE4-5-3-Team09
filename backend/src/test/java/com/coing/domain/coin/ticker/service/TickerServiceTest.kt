@@ -22,6 +22,7 @@ import org.mockito.InjectMocks
 import org.mockito.Mock
 import org.mockito.Mockito.*
 import org.mockito.junit.jupiter.MockitoExtension
+import org.mockito.kotlin.whenever
 import java.lang.reflect.Field
 import java.time.Instant
 import java.time.LocalDate
@@ -196,5 +197,27 @@ class TickerServiceTest {
 
         verify(tickerPublisher, times(1))
             .publish(dto)
+    }
+
+    @Test
+    @DisplayName("fallbackUpdate 성공")
+    fun fallbackUpdate() {
+        // given
+        whenever(marketService.getCachedMarketByCode("KRW-BTC")).thenReturn(
+            Market(code = "KRW-BTC", koreanName = "비트코인", englishName = "Bitcoin")
+        )
+        tickerService.update(testTicker)
+
+        // when
+        tickerService.fallbackUpdate("13:05:22")
+
+        // then
+        val cachedData = tickerService.getTicker("KRW-BTC")
+        kotlin.test.assertTrue(cachedData.isFallback)
+        assertEquals("13:05:22", cachedData.lastUpdate)
+
+        org.mockito.kotlin.verify(tickerPublisher, times(1)).publish(org.mockito.kotlin.argThat {
+            isFallback && lastUpdate == "13:05:22"
+        })
     }
 }

@@ -34,6 +34,16 @@ class OrderbookService(
 		}
 	}
 
+	fun getAllCachedData(): List<OrderbookDto> = orderbookCache.values.toList()
+
+    override fun fallbackUpdate(lastUpdate: String) {
+		orderbookCache.forEach { (code, dto) ->
+			dto.isFallback = true
+			dto.lastUpdate = lastUpdate
+			publish(dto)
+		}
+    }
+
 	@Scheduled(fixedRate = 60_000)
 	fun cleanUp() {
 		val expirationTime = System.currentTimeMillis() - 60_000
