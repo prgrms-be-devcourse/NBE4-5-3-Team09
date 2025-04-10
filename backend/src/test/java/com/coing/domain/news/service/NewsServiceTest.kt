@@ -2,17 +2,12 @@ package com.coing.domain.news.service
 
 import com.coing.domain.coin.market.entity.Market
 import com.coing.domain.coin.market.repository.MarketRepository
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.mockito.Mockito
-import org.mockito.Mockito.anyMap
-import org.mockito.Mockito.anyString
-import org.mockito.Mockito.doReturn
-import org.mockito.Mockito.doThrow
-import org.mockito.Mockito.times
-import org.mockito.Mockito.verify
+import org.mockito.Mockito.*
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.mock.mockito.SpyBean
@@ -35,6 +30,11 @@ class NewsServiceTest @Autowired constructor(
             )
             marketRepository.save(market)
         }
+    }
+
+    @AfterEach
+    fun cleanupMocks() {
+        reset(newsService) // mock 초기화
     }
 
     @Test
