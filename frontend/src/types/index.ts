@@ -168,20 +168,3 @@ export interface ChatMessageDto {
   content: string;
   timestamp: string;
 }
-
-export interface Kakao {
-  isInitialized(): boolean;
-  init(key: string | undefined): void;
-  Link: {
-    sendCustom(config: {
-      templateId: number;
-      templateArgs?: Record<string, string>;
-    }): void;
-  };
-}
-
-declare global {
-  interface Window {
-    Kakao: Kakao;
-  }
-}

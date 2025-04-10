@@ -6,7 +6,6 @@ import { AuthProvider } from '@/context/AuthContext';
 import Header from '@/components/Header';
 import { ThemeProvider } from '@/context/ThemeContext';
 import { Toaster } from '@/components/ui/sonner';
-import KakaoScriptLoader from '@/components/common/KakaoScriptLoader';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -20,7 +19,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        <KakaoScriptLoader />
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

@@ -143,7 +143,7 @@ export default function ClientPage() {
 
       {/* 공유 모달 */}
       {isShareOpen && (
-        <ShareModal onClose={() => setShareOpen(false)} market={market} />
+        <ShareModal onClose={() => setShareOpen(false)} market={market} ticker={ticker} />
       )}
     </div>
   );
