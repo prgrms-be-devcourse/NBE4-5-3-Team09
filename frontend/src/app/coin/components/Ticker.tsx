@@ -67,6 +67,7 @@ export default function Ticker({ market, ticker }: TickerProps) {
                 >
                   {currentTicker.tradePrice.toLocaleString()}
                   <span className="ml-0.5 text-sm">{market.split('-')[0]}</span>
+                  {` (${(currentTicker.oneMinuteRate * 100).toFixed(2) + '%'})`}
                 </span>
               )}
             </div>

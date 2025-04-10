@@ -31,6 +31,12 @@ export type TickerDto = {
   marketState: MarketState; // 거래 상태
   marketWarning: MarketWarning; // 유의 종목 여부
   timestamp: number; // 타임스탬프
+
+  // 계산된 지표
+  accAskBidRate: number; // 매수/매도 누적 비율
+  highBreakout: boolean; // 52주 최고가 갱신 여부
+  lowBreakout: boolean; // 52주 최저가 갱신 여부
+  oneMinuteRate: number; // 단기 변동률(1분)
 };
 
 export enum Change {

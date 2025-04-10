@@ -88,6 +88,7 @@ export default function MarketCard({ market, ticker, onBookmarkToggle }: MarketC
                 >
                   {ticker ? formatTradePrice(ticker.tradePrice) : '0'}
                   <span className="ml-1 text-xs">{market.code.split('-')[0]}</span>
+                  {ticker ? ` (${(ticker.oneMinuteRate * 100).toFixed(2) + '%'})` : '-'}
                 </p>
 
                 <p
