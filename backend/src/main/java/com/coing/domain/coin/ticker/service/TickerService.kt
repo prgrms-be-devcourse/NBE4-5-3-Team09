@@ -5,6 +5,7 @@ import com.coing.domain.coin.common.port.EventPublisher
 import com.coing.domain.coin.market.service.MarketService
 import com.coing.domain.coin.ticker.dto.TickerDto
 import com.coing.domain.coin.ticker.entity.Ticker
+import com.coing.domain.notification.entity.OneMinuteRate
 import com.coing.domain.notification.service.PushService
 import com.coing.global.exception.BusinessException
 import com.coing.util.MessageUtil
@@ -107,8 +108,6 @@ class TickerService(
     fun pushMessage(dto: TickerDto) {
         val market = dto.code
         val now = System.currentTimeMillis()
-
-        // 락 가져오기 (없으면 새로 생성)
         val mutex = pushMutexMap.computeIfAbsent(market) { Mutex() }
 
         coroutineScope.launch {
@@ -116,34 +115,23 @@ class TickerService(
                 val lastSent = lastPushSentTime[market] ?: 0L
                 if (now - lastSent < PUSH_THROTTLE_INTERVAL_MS) return@withLock
 
-                val thresholds = listOf(
-                    0.01 to "1",
-                    0.03 to "3",
-                    0.05 to "5",
-                    0.10 to "10"
-                )
+                val absRate = kotlin.math.abs(dto.oneMinuteRate)
+                val direction = if (dto.oneMinuteRate > 0) "HIGH" else "LOW"
+                val messageKey = if (dto.oneMinuteRate > 0) "high.rate" else "low.rate"
 
-                thresholds.forEach { (threshold, label) ->
-                    when {
-                        dto.oneMinuteRate >= threshold -> {
-                            pushService.sendAsync(
-                                title = "${dto.koreanName} ${dto.englishName}",
-                                body = String.format(messageUtil.resolveMessage("high.rate"), label),
-                                marketCode = market,
-                                topic = "$market-HIGH-$label"
-                            )
-                        }
+                OneMinuteRate.entries
+                    .filter { it != OneMinuteRate.NONE && absRate >= it.threshold }
+                    .forEach { rate ->
+                        val topic = "$market-$direction-${rate.name}"
+                        val body = String.format(messageUtil.resolveMessage(messageKey), rate.name)
 
-                        dto.oneMinuteRate <= -threshold -> {
-                            pushService.sendAsync(
-                                title = "${dto.koreanName} ${dto.englishName}",
-                                body = String.format(messageUtil.resolveMessage("low.rate"), label),
-                                marketCode = market,
-                                topic = "$market-LOW-$label"
-                            )
-                        }
+                        pushService.sendAsync(
+                            title = market,
+                            body = body,
+                            marketCode = market,
+                            topic = topic
+                        )
                     }
-                }
 
                 lastPushSentTime[market] = now
             }
