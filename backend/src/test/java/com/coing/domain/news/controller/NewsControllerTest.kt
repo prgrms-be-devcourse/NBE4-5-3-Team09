@@ -24,6 +24,7 @@ class NewsControllerTest {
     @Autowired
     lateinit var objectMapper: ObjectMapper
 
+    // NewsService를 목(mock) 객체로 주입
     @MockitoBean
     lateinit var newsService: NewsService
 
@@ -40,7 +41,7 @@ class NewsControllerTest {
         given(newsService.searchNewsByMarketCode(marketCode, display, start, sort, format))
             .willReturn(sampleNewsJson)
 
-        // when & then
+        // when & then: API 호출 시 올바른 JSON이 반환되는지 확인
         mockMvc.get("/api/news") {
             param("market", marketCode)
             param("display", display.toString())
