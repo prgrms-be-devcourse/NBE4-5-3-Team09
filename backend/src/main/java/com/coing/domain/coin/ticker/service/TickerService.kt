@@ -11,6 +11,8 @@ import com.coing.util.MessageUtil
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import java.util.*
@@ -27,6 +29,7 @@ class TickerService(
     private val tickerListCache: MutableMap<String, Deque<TickerDto>> = ConcurrentHashMap()
     private val lastSentTime = ConcurrentHashMap<String, Long>()
     private val lastPushSentTime = ConcurrentHashMap<String, Long>()
+    private val pushMutexMap = ConcurrentHashMap<String, Mutex>()
 
     companion object {
         private const val THROTTLE_INTERVAL_MS = 200L
@@ -103,26 +106,48 @@ class TickerService(
     fun pushMessage(dto: TickerDto) {
         val market = dto.code
         val now = System.currentTimeMillis()
-        val lastSent = lastPushSentTime[market] ?: 0L
 
-        if (now - lastSent < PUSH_THROTTLE_INTERVAL_MS) return
-
-        val (_, messageKey) = when {
-            dto.oneMinuteRate >= 0.05 -> 0.05 to "high.rate"
-            dto.oneMinuteRate <= -0.05 -> -0.05 to "low.rate"
-            else -> return
-        }
+        // 락 가져오기 (없으면 새로 생성)
+        val mutex = pushMutexMap.computeIfAbsent(market) { Mutex() }
 
         CoroutineScope(Dispatchers.IO).launch {
-            pushService.sendAsync(
-                market,
-                messageUtil.resolveMessage(messageKey),
-                market
-            )
-            lastPushSentTime[market] = now
+            mutex.withLock {
+                val lastSent = lastPushSentTime[market] ?: 0L
+                if (now - lastSent < PUSH_THROTTLE_INTERVAL_MS) return@withLock
+
+                val thresholds = listOf(
+                    0.01 to "1",
+                    0.03 to "3",
+                    0.05 to "5",
+                    0.10 to "10"
+                )
+
+                thresholds.forEach { (threshold, label) ->
+                    when {
+                        dto.oneMinuteRate >= threshold -> {
+                            pushService.sendAsync(
+                                title = "${dto.koreanName} ${dto.englishName}",
+                                body = String.format(messageUtil.resolveMessage("high.rate"), label),
+                                marketCode = market,
+                                topic = "$market-HIGH-$label"
+                            )
+                        }
+
+                        dto.oneMinuteRate <= -threshold -> {
+                            pushService.sendAsync(
+                                title = "${dto.koreanName} ${dto.englishName}",
+                                body = String.format(messageUtil.resolveMessage("low.rate"), label),
+                                marketCode = market,
+                                topic = "$market-LOW-$label"
+                            )
+                        }
+                    }
+                }
+
+                lastPushSentTime[market] = now
+            }
         }
     }
-
 
     fun publish(dto: TickerDto) {
         val market = dto.code
