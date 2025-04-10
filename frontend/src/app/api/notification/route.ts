@@ -4,6 +4,7 @@ import { client } from '@/lib/api/client';
 import type { components } from '@/lib/api/generated/schema';
 
 type OneMinuteRate = components['schemas']['SubscribeInfo']['oneMinuteRate'];
+type TradeImpact = components['schemas']['SubscribeInfo']['tradeImpact'];
 type SubscribeRequest = components['schemas']['SubscribeRequest'];
 type PushTokenSaveRequest = components['schemas']['PushTokenSaveRequest'];
 
@@ -60,11 +61,19 @@ export async function updatePushTopics(
   market: string,
   subscribeRate: OneMinuteRate,
   unsubscribeRate: OneMinuteRate,
+  subscribeImpact: TradeImpact,
+  unsubscribeImpact: TradeImpact,
 ) {
   const body: SubscribeRequest = {
     market,
-    subscribeInfo: { oneMinuteRate: subscribeRate },
-    unsubscribeInfo: { oneMinuteRate: unsubscribeRate },
+    subscribeInfo: {
+      oneMinuteRate: subscribeRate,
+      tradeImpact: subscribeImpact,
+    },
+    unsubscribeInfo: {
+      oneMinuteRate: unsubscribeRate,
+      tradeImpact: unsubscribeImpact,
+    },
   };
 
   const { error } = await client.POST('/api/push/subscribe', {
@@ -75,11 +84,11 @@ export async function updatePushTopics(
   });
 
   if (error) {
-    console.error('rate 구독 변경 실패:', error);
+    console.error('알림 구독 변경 실패:', error);
     throw error;
   }
 
-  console.log('알림 rate 구독 변경 완료');
+  console.log('알림 구독 변경 완료');
 }
 
 // 현재 구독 정보 조회 API
