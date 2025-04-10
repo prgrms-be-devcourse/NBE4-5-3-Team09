@@ -18,5 +18,8 @@ class Subscribe(
     val market: Market,
 
     @Enumerated(EnumType.STRING)
-    var oneMinuteRate: OneMinuteRate = OneMinuteRate.NONE
+    var oneMinuteRate: OneMinuteRate = OneMinuteRate.NONE,
+
+    @Enumerated(EnumType.STRING)
+    var tradeImpact: TradeImpact = TradeImpact.NONE
 )
