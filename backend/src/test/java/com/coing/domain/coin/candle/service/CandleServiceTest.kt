@@ -3,24 +3,45 @@ package com.coing.domain.coin.candle.service
 import com.coing.domain.coin.candle.entity.Candle
 import com.coing.domain.coin.candle.enums.EnumCandleType
 import com.coing.domain.coin.candle.port.CandleDataPort
+import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.mockito.Mockito.mock
 import org.mockito.Mockito.`when`
+import org.mockito.kotlin.eq
+import org.mockito.kotlin.whenever
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.test.context.TestPropertySource
+import org.springframework.test.context.bean.override.mockito.MockitoBean
 import java.time.Instant
 
-class CandleServiceUnitTest {
-
-	private lateinit var service: CandleService
+@SpringBootTest
+@TestPropertySource(properties = [
+    "resilience4j.retry.instances.upbit-rest-api.max-attempts=3",
+    "resilience4j.retry.instances.upbit-rest-api.wait-duration=100ms",
+    "resilience4j.retry.instances.upbit-rest-api.enable-exponential-backoff=false",
+    "resilience4j.circuitbreaker.instances.upbit-rest-api.sliding-window-size=10",
+    "resilience4j.circuitbreaker.instances.upbit-rest-api.failure-rate-threshold=50",
+    "resilience4j.circuitbreaker.instances.upbit-rest-api.minimum-number-of-calls=3",
+    "resilience4j.circuitbreaker.instances.upbit-rest-api.wait-duration-in-open-state=5s"
+])
+class CandleServiceTest {
+    @MockitoBean
 	private lateinit var candleDataPort: CandleDataPort
+    @Autowired
+	private lateinit var service: CandleService
+    @Autowired
+    lateinit var circuitBreakerRegistry: CircuitBreakerRegistry
 
-	@BeforeEach
-	fun setUp() {
-		candleDataPort = mock(CandleDataPort::class.java)
-		service = CandleService(candleDataPort)
-	}
+    private val market = "KRW-BTC"
+    private val candleType = EnumCandleType.minutes
+    private val unit = 1
+
+    @BeforeEach
+    fun reset() {
+        circuitBreakerRegistry.circuitBreaker("upbit-rest-api").reset()
+    }
 
     @Test
     fun `캔들 데이터 정상 호출 - seconds`() {
@@ -47,8 +68,7 @@ class CandleServiceUnitTest {
                 timestamp = Instant.now().toEpochMilli()
             )
         )
-
-        `when`(candleDataPort.fetchLatestCandles("KRW-BTC", EnumCandleType.seconds, null))
+        whenever(candleDataPort.fetchLatestCandles("KRW-BTC", EnumCandleType.seconds, null))
             .thenReturn(testCandles.toList())
 
         // when
@@ -63,14 +83,14 @@ class CandleServiceUnitTest {
     @Test
     fun `API 호출 중 예외 발생 시 빈 리스트 반환`() {
         // given
-        `when`(candleDataPort.fetchLatestCandles("KRW-BTC", EnumCandleType.seconds, null))
-            .thenThrow(RuntimeException("API error"))
+        whenever(candleDataPort.fetchLatestCandles(eq(market), eq(candleType), eq(unit)))
+            .thenAnswer { throw RuntimeException("fail") }
 
         // when
-        val result = service.getLatestCandles("KRW-BTC", EnumCandleType.seconds, null)
+        val result = service.getLatestCandles(market, candleType, unit)
 
         // then
-        assertTrue(result.isEmpty())
+        assertEquals(emptyList<Candle>(), result)
     }
 
     @Test

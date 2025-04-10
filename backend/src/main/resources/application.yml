@@ -101,8 +101,23 @@ naver:
 resilience4j:
   retry:
     instances:
+      upbit-rest-api:
+        max-attempts: 3
+        wait-duration: 1s
+        enable-exponential-backoff: true
+        exponential-backoff-multiplier: 2
       upbitWebSocket:
         max-attempts: 6
         wait-duration: 2s
         enable-exponential-backoff: true
         exponential-backoff-multiplier: 2
+  circuitbreaker:
+    instances:
+      upbit-rest-api:
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: 10
+        failure-rate-threshold: 50
+        minimum-number-of-calls: 5
+        wait-duration-in-open-state: 10s
+        permitted-number-of-calls-in-half-open-state: 3
+        automatic-transition-from-open-to-half-open-enabled: true

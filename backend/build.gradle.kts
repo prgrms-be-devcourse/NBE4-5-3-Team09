@@ -86,6 +86,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-aop")
     implementation("io.github.resilience4j:resilience4j-spring-boot3:2.3.0")
     implementation("io.github.resilience4j:resilience4j-retry:2.3.0")
+    implementation("io.github.resilience4j:resilience4j-circuitbreaker:2.3.0")
 }
 
 tasks.named<Test>("test") {

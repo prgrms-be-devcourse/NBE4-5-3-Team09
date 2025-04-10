@@ -16,20 +16,16 @@ class UpbitMarketApiAdapter(
 
     private val log = LoggerFactory.getLogger(this::class.java)
 
-    override fun fetchMarkets(): List<Market>  = try {
+    override fun fetchMarkets(): List<Market>  {
         val response = restTemplate.getForEntity(
             UpbitApiEndpoints.MARKET_ALL,
             Array<UpbitApiMarketDto>::class.java
         )
-
         if (response.statusCode != HttpStatus.OK || response.body.isNullOrEmpty()) {
             log.warn("Failed Upbit Market API call: status=${response.statusCode}, body=null or empty")
-            emptyList()
-        } else {
-            response.body!!.map { it.toEntity() }
+            // 실패 시 빈 리스트 대신 예외를 던져서 상위에서 fallback을 처리하도록 함
+            throw RuntimeException("Market API call failed with status: ${response.statusCode}")
         }
-    } catch (e: Exception) {
-        log.error("[Market] Error fetching market data from Upbit: ${e.message}", e)
-        emptyList()
+        return response.body!!.map { it.toEntity() }
     }
 }
