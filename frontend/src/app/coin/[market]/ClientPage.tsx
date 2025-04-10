@@ -11,6 +11,7 @@ import TradeList from '@/app/coin/components/TradeList';
 import Ticker from '@/app/coin/components/Ticker';
 import { fetchApi } from '@/lib/api';
 import ChatPopup from '@/app/coin/components/ChatPopup'; // 채팅 모달 컴포넌트
+import ShareModal from '@/app/coin/components/ShareModal';
 
 export default function ClientPage() {
   const { market } = useParams() as { market: string };
@@ -33,6 +34,8 @@ export default function ClientPage() {
 
   // 채팅 팝업 표시 상태
   const [isChatPopupOpen, setChatPopupOpen] = useState(false);
+
+  const [isShareOpen, setShareOpen] = useState(false);
 
   // 로그인 여부 상태: 세션 스토리지에 accessToken이 있으면 로그인된 것으로 판단
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -102,6 +105,12 @@ export default function ClientPage() {
 
   return (
     <div style={{ position: 'relative' }}>
+      <button
+        onClick={() => setShareOpen(!isShareOpen)}
+        className="absolute top-4 right-40 z-10 px-3 py-2 rounded-md bg-gray-200 hover:bg-gray-300"
+      >
+        공유하기
+      </button>
       {/* 우측 상단 채팅방 버튼 */}
       <button
         onClick={() => (isLoggedIn ? setChatPopupOpen(true) : alert('로그인이 필요합니다.'))}
@@ -131,6 +140,11 @@ export default function ClientPage() {
 
       {/* 채팅 모달 팝업 */}
       {isChatPopupOpen && <ChatPopup marketCode={market} onClose={() => setChatPopupOpen(false)} />}
+
+      {/* 공유 모달 */}
+      {isShareOpen && (
+        <ShareModal onClose={() => setShareOpen(false)} market={market} ticker={ticker} />
+      )}
     </div>
   );
 }
