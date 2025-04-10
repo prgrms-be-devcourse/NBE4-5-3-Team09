@@ -15,13 +15,23 @@ const messaging = getMessaging(app);
 
 onMessage(messaging, (payload) => {
   const notificationTitle = payload.data?.title;
-  const notificationOptions = {
+  const notificationOptions: NotificationOptions = {
     body: payload.data?.body,
     icon: '/logo.svg',
   };
 
   if (Notification.permission === 'granted') {
-    new Notification(notificationTitle!!, notificationOptions);
+    const notification = new Notification(notificationTitle!, notificationOptions);
+
+    notification.onclick = () => {
+      const targetUrl = new URL(payload.data?.url!, window.location.origin).href;
+
+      // 현재 창에서 이동
+      window.location.href = targetUrl;
+
+      // 알림 수동 닫기
+      notification.close();
+    };
   }
 });
 

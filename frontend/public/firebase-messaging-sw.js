@@ -26,5 +26,16 @@ messaging.onBackgroundMessage(function (payload) {
   self.registration.showNotification(payload.data.title, {
     body: payload.data.body,
     icon: '/logo.svg',
+    data: {
+      url: payload.data.url,
+    },
   });
+});
+
+self.addEventListener('notificationclick', function (event) {
+  event.notification.close();
+
+  const urlToOpen = new URL(event.notification.data.url, self.location.origin);
+
+  event.waitUntil(clients.openWindow ? clients.openWindow(urlToOpen.href) : Promise.resolve());
 });
