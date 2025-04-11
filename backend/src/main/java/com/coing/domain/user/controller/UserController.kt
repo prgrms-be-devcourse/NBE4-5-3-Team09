@@ -197,7 +197,7 @@ class UserController(
         if (principal == null) {
             throw BusinessException(messageUtil.resolveMessage("empty.token.provided"), HttpStatus.FORBIDDEN, "")
         }
-        val user: UserResponse = userService.findById(principal.id)
+        val user: UserInfoResponse = userService.getUserInfoById(principal.id)
         return ResponseEntity.ok(user)
     }
 

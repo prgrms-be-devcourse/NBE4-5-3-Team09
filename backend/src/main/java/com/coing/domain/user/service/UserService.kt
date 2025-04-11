@@ -1,5 +1,6 @@
 package com.coing.domain.user.service
 
+import com.coing.domain.user.controller.dto.UserInfoResponse
 import com.coing.domain.user.controller.dto.UserResponse
 import com.coing.domain.user.controller.dto.UserSignUpRequest
 import com.coing.domain.user.email.service.EmailVerificationService
@@ -118,6 +119,20 @@ class UserService(
     fun findById(id: UUID): UserResponse {
         return userRepository.findById(id)
             .map { UserResponse.from(it) }
+            .orElseThrow {
+                BusinessException(
+                    messageUtil.resolveMessage("member.not.found"),
+                    HttpStatus.BAD_REQUEST,
+                    ""
+                )
+            }
+    }
+
+    // 사용자 정보
+    @Transactional(readOnly = true)
+    fun getUserInfoById(id: UUID): UserInfoResponse {
+        return userRepository.findById(id)
+            .map { UserInfoResponse.from(it) }
             .orElseThrow {
                 BusinessException(
                     messageUtil.resolveMessage("member.not.found"),
