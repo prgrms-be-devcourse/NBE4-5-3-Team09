@@ -20,7 +20,7 @@ export const defaultState: UserProfile = {
   name: '게스트',
   email: '',
   authority: 'ROLE_USER', // 기본 권한은 'ROLE_USER'
-  provider: ''
+  provider: '',
 };
 
 export const useUserStore = create<UserState>((set) => ({

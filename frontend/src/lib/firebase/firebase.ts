@@ -31,17 +31,19 @@ onMessage(messaging, (payload) => {
   };
 
   if (Notification.permission === 'granted') {
-    const notification = new Notification(notificationTitle!, notificationOptions);
+    const url = payload.data?.url;
 
-    notification.onclick = () => {
-      const targetUrl = new URL(payload.data?.url!, window.location.origin).href;
+    if (url) {
+      const notification = new Notification(notificationTitle!, notificationOptions);
 
-      // 현재 창에서 이동
-      window.location.href = targetUrl;
-
-      // 알림 수동 닫기
-      notification.close();
-    };
+      notification.onclick = () => {
+        const targetUrl = new URL(url, window.location.origin).href;
+        window.location.href = targetUrl;
+        notification.close();
+      };
+    } else {
+      console.warn('알림 URL이 없습니다.');
+    }
   }
 });
 
