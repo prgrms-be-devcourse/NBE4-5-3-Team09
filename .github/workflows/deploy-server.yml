@@ -36,7 +36,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: 23
+          java-version: 21
 
       - name: 테스트 및 빌드
         working-directory: backend

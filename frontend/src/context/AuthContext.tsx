@@ -88,7 +88,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
       return response;
     },
-    [accessToken]
+    [accessToken],
   );
 
   // 컴포넌트 마운트 시 토큰 유무 체크
@@ -117,7 +117,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (res.ok) {
           const data = await res.json();
           // 백엔드에서 반환하는 데이터에 authority 값도 포함되어 있다고 가정합니다.
-          setUser({ name: data.name, email: data.email, authority: data.authority, provider: data.provider });
+          setUser({
+            name: data.name,
+            email: data.email,
+            authority: data.authority,
+            provider: data.provider,
+          });
         } else {
           setUser(defaultState);
         }

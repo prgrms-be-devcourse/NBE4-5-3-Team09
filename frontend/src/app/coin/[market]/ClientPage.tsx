@@ -23,7 +23,9 @@ export default function ClientPage() {
   const orderbook = orderbooks?.[market] ?? null;
 
   const [candles, setCandles] = useState<CandleItem[]>([]);
-  const [candleType, setCandleType] = useState<'seconds' | 'minutes' | 'days' | 'weeks' | 'months' | 'years'>('seconds');
+  const [candleType, setCandleType] = useState<
+    'seconds' | 'minutes' | 'days' | 'weeks' | 'months' | 'years'
+  >('seconds');
   const [minuteUnit, setMinuteUnit] = useState(1);
   const [news, setNews] = useState<NewsItem[]>([]);
   const [isChatPopupOpen, setChatPopupOpen] = useState(false);
@@ -37,13 +39,18 @@ export default function ClientPage() {
 
   const getPollingInterval = (type: string): number => {
     switch (type) {
-      case 'seconds': return 1000;
-      case 'minutes': return 30000;
-      case 'days': return 3600000;
+      case 'seconds':
+        return 1000;
+      case 'minutes':
+        return 30000;
+      case 'days':
+        return 3600000;
       case 'weeks':
       case 'months':
-      case 'years': return 86400000;
-      default: return 1000;
+      case 'years':
+        return 86400000;
+      default:
+        return 1000;
     }
   };
 
@@ -51,7 +58,10 @@ export default function ClientPage() {
     const fetchCandles = async () => {
       try {
         const unitQuery = candleType === 'minutes' && minuteUnit ? `&unit=${minuteUnit}` : '';
-        const data = await fetchApi<CandleItem[]>(`/api/candle?market=${market}&candleType=${candleType}${unitQuery}`, { method: 'GET' });
+        const data = await fetchApi<CandleItem[]>(
+          `/api/candle?market=${market}&candleType=${candleType}${unitQuery}`,
+          { method: 'GET' },
+        );
         setCandles(data);
       } catch (err) {
         console.error('캔들 데이터 호출 오류:', err);
@@ -83,7 +93,9 @@ export default function ClientPage() {
       <div className="absolute top-4 right-4 z-10 mt-4">
         <div className="hidden md:flex gap-2">
           <button
-            onClick={() => isLoggedIn ? setNotificationPopupOpen(true) : alert('로그인이 필요합니다.')}
+            onClick={() =>
+              isLoggedIn ? setNotificationPopupOpen(true) : alert('로그인이 필요합니다.')
+            }
             className="px-3 py-2 rounded-md transition-colors bg-primary text-primary-foreground dark:text-black dark:bg-primary-dark hover:bg-primary/90"
           >
             알림 설정
@@ -95,7 +107,7 @@ export default function ClientPage() {
             공유하기
           </button>
           <button
-            onClick={() => isLoggedIn ? setChatPopupOpen(true) : alert('로그인이 필요합니다.')}
+            onClick={() => (isLoggedIn ? setChatPopupOpen(true) : alert('로그인이 필요합니다.'))}
             className="px-3 py-2 rounded-md transition-colors bg-primary text-primary-foreground dark:text-black dark:bg-primary-dark hover:bg-primary/90"
           >
             채팅방(회원 전용)
@@ -129,7 +141,9 @@ export default function ClientPage() {
       </div>
 
       {isChatPopupOpen && <ChatPopup marketCode={market} onClose={() => setChatPopupOpen(false)} />}
-      {isShareOpen && <ShareModal onClose={() => setShareOpen(false)} market={market} ticker={ticker} />}
+      {isShareOpen && (
+        <ShareModal onClose={() => setShareOpen(false)} market={market} ticker={ticker} />
+      )}
       {isNotificationPopupOpen && (
         <NotificationPopup
           market={market}
@@ -142,11 +156,11 @@ export default function ClientPage() {
 }
 
 function MobileHeaderMenu({
-                            isLoggedIn,
-                            onChatClick,
-                            onShareClick,
-                            onNotifyClick,
-                          }: {
+  isLoggedIn,
+  onChatClick,
+  onShareClick,
+  onNotifyClick,
+}: {
   isLoggedIn: boolean;
   onChatClick: () => void;
   onShareClick: () => void;

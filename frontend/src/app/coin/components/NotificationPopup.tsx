@@ -63,7 +63,7 @@ export default function NotificationPopup({
         currentImpact,
       );
       console.log('알림 설정이 저장되었습니다.');
-    } catch (err) {
+    } catch {
       alert('알림 설정에 실패했습니다.');
     }
   };

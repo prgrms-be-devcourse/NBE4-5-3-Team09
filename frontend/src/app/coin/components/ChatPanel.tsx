@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useRef, KeyboardEvent } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useWebSocket } from '@/context/WebSocketContext';
 import { Input } from '@/components/ui/input';
 
@@ -30,7 +30,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ marketCode }) => {
     const loadCachedMessages = async () => {
       try {
         const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/chat/rooms/${marketCode}/messages`
+          `${process.env.NEXT_PUBLIC_API_URL}/api/chat/rooms/${marketCode}/messages`,
         );
         if (res.ok) {
           const data = await res.json();
@@ -58,13 +58,9 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ marketCode }) => {
     publishMessage(
       `/app/chat/${marketCode}`,
       JSON.stringify(message),
-      token ? { Authorization: `Bearer ${token}` } : {}
+      token ? { Authorization: `Bearer ${token}` } : {},
     );
     setInput('');
-  };
-
-  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') sendMessage();
   };
 
   const handleReport = async (msg: ChatMessage) => {
@@ -79,7 +75,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ marketCode }) => {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-      }
+      },
     );
     if (res.ok) alert('신고 완료');
     else alert('신고 실패');
@@ -88,11 +84,8 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ marketCode }) => {
   const realtimeMessages = chatMessages[marketCode] || [];
   const allMessages = Array.from(
     new Map(
-      [...cachedMessages, ...realtimeMessages].map((m) => [
-        `${m.timestamp}-${m.content}`,
-        m,
-      ])
-    ).values()
+      [...cachedMessages, ...realtimeMessages].map((m) => [`${m.timestamp}-${m.content}`, m]),
+    ).values(),
   );
 
   return (
@@ -102,13 +95,8 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ marketCode }) => {
           <div key={index} className="mb-2">
             <strong>{msg.sender}:</strong> {msg.content}
             <div className="text-xs text-muted-foreground">
-              {msg.timestamp
-                ? new Date(parseInt(msg.timestamp)).toLocaleTimeString()
-                : ''}
-              <button
-                onClick={() => handleReport(msg)}
-                className="ml-2 text-red-500 underline"
-              >
+              {msg.timestamp ? new Date(parseInt(msg.timestamp)).toLocaleTimeString() : ''}
+              <button onClick={() => handleReport(msg)} className="ml-2 text-red-500 underline">
                 신고
               </button>
             </div>
