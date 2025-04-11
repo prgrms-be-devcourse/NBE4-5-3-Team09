@@ -32,13 +32,13 @@ class MarketService(
 
 	@Transactional
 	@Scheduled(initialDelay = 0, fixedRate = 6 * 60 * 60 * 1000)
-    @Retry(name = "upbit-rest-api")
-    @CircuitBreaker(name = "upbit-rest-api", fallbackMethod = "fallbackFetchMarkets")
 	fun updateMarketList() {
 		val markets = fetchAndUpdateCoins()
 		marketCacheService.updateMarketCache(markets)
 	}
 
+    @Retry(name = "upbit-rest-api")
+    @CircuitBreaker(name = "upbit-rest-api", fallbackMethod = "fallbackFetchMarkets")
     private fun fetchAndUpdateCoins(): List<Market> {
         val markets = marketDataPort.fetchMarkets()
         marketRepository.saveAll(markets)
