@@ -6,11 +6,13 @@ import com.coing.domain.coin.candle.port.CandleDataPort
 import com.coing.infra.upbit.adapter.api.constant.UpbitApiEndpoints
 import com.coing.infra.upbit.adapter.api.dto.UpbitApiCandleDto
 import org.slf4j.LoggerFactory
+import org.springframework.context.annotation.Profile
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Component
 import org.springframework.web.client.RestTemplate
 
 @Component
+@Profile("!test")
 class UpbitCandleApiAdapter(
     private val restTemplate: RestTemplate
 ) : CandleDataPort {
@@ -19,20 +21,14 @@ class UpbitCandleApiAdapter(
 
     override fun fetchLatestCandles(market: String, candleType: EnumCandleType, unit: Int?): List<Candle> {
         val url = buildUrl(market, candleType, unit)
-        return try {
-            val response = restTemplate.getForEntity(url, Array<UpbitApiCandleDto>::class.java)
-            if (response.statusCode != HttpStatus.OK || response.body.isNullOrEmpty()) {
-                log.warn("Failed Upbit Candle API call: status=${response.statusCode}, body=null or empty")
-                emptyList()
-            } else {
-                val candleList = response.body!!.map { it.toEntity() }.toMutableList()
-                candleList.reverse()
-                candleList
-            }
-        } catch (e: Exception) {
-            log.error("[Candle] Error fetching candle data from Upbit: ${e.message}", e)
-            emptyList()
+        val response = restTemplate.getForEntity(url, Array<UpbitApiCandleDto>::class.java)
+        if (response.statusCode != HttpStatus.OK || response.body.isNullOrEmpty()) {
+            log.warn("Failed Upbit Candle API call: status=${response.statusCode}")
+            throw RuntimeException("Candle API call failed with status: ${response.statusCode}")
         }
+        val candleList = response.body!!.map { it.toEntity() }.toMutableList()
+        candleList.reverse()
+        return candleList
     }
 
     private fun buildUrl(market: String, candleType: EnumCandleType, unit: Int?): String = when(candleType) {

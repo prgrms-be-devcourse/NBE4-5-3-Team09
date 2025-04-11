@@ -8,15 +8,14 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
-import org.mockito.kotlin.argumentCaptor
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.times
-import org.mockito.kotlin.verify
+import org.mockito.kotlin.*
+import kotlin.test.assertTrue
 
 class OrderbookServiceTest {
     private val orderbookPublisher: EventPublisher<OrderbookDto> = mock()
     private lateinit var orderbookService: OrderbookService
     private lateinit var testOrderbook: Orderbook
+    private lateinit var testOrderbook2: Orderbook
 
     @BeforeEach
     fun setUp() {
@@ -31,6 +30,16 @@ class OrderbookServiceTest {
         testOrderbook = Orderbook(
             type = "orderbook",
             code = "KRW-BTC",
+            totalAskSize = 10.0,
+            totalBidSize = 5.0,
+            orderbookUnits = listOf(unit),
+            timestamp = System.currentTimeMillis(),
+            level = 0.0
+        )
+
+        testOrderbook2 = Orderbook(
+            type = "orderbook",
+            code = "KRW-ETH",
             totalAskSize = 10.0,
             totalBidSize = 5.0,
             orderbookUnits = listOf(unit),
@@ -72,5 +81,27 @@ class OrderbookServiceTest {
             assertEquals("orderbook", sentDto.type)
             assertEquals("KRW-BTC", sentDto.code)
         }
+    }
+
+    @Test
+    @DisplayName("fallbackUpdate 성공")
+    fun fallbackUpdate() {
+        // given
+        orderbookService.update(testOrderbook)
+        orderbookService.update(testOrderbook2)
+
+        // when
+        orderbookService.fallbackUpdate("13:05:22")
+
+        // then
+        val cachedData = orderbookService.getAllCachedData()
+        cachedData.forEach {
+            assertTrue(it.isFallback)
+            assertEquals("13:05:22", it.lastUpdate)
+        }
+
+        verify(orderbookPublisher, times(2)).publish(argThat {
+            isFallback && lastUpdate == "13:05:22"
+        })
     }
 }

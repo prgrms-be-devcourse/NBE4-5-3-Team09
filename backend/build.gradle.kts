@@ -82,6 +82,11 @@ dependencies {
     implementation("com.google.firebase:firebase-admin:9.4.3")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.1")
     implementation("org.springframework.retry:spring-retry")
+
+    implementation("org.springframework.boot:spring-boot-starter-aop")
+    implementation("io.github.resilience4j:resilience4j-spring-boot3:2.3.0")
+    implementation("io.github.resilience4j:resilience4j-retry:2.3.0")
+    implementation("io.github.resilience4j:resilience4j-circuitbreaker:2.3.0")
 }
 
 tasks.named<Test>("test") {

@@ -12,9 +12,15 @@ import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.Mock
+import org.mockito.Mockito.mock
 import org.mockito.junit.jupiter.MockitoExtension
+import org.mockito.kotlin.any
+import org.mockito.kotlin.whenever
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.test.util.ReflectionTestUtils
+import org.springframework.web.socket.WebSocketSession
 import org.springframework.web.socket.client.WebSocketClient
+import java.util.concurrent.CompletableFuture
 
 @ExtendWith(MockitoExtension::class)
 class UpbitWebSocketManagerTest {
@@ -31,6 +37,9 @@ class UpbitWebSocketManagerTest {
     @Mock
     private lateinit var tradeHandler: UpbitWebSocketTradeHandler
 
+    @Mock
+    private lateinit var eventPublisher: ApplicationEventPublisher
+
     private lateinit var service: UpbitWebSocketManager
 
     private val uri = "wss://api.upbit.com/websocket/v1"
@@ -41,7 +50,8 @@ class UpbitWebSocketManagerTest {
             webSocketClient,
             orderbookHandler,
             tickerHandler,
-            tradeHandler
+            tradeHandler,
+            eventPublisher
         )
         ReflectionTestUtils.setField(service, "upbitWebSocketUri", uri)
     }
@@ -49,6 +59,12 @@ class UpbitWebSocketManagerTest {
     @Test
     @DisplayName("init() 시 각 타입별 Connection 생성")
     fun initSuccess() {
+        // given
+        val mockSession = mock(WebSocketSession::class.java)
+        val mockFuture = CompletableFuture.completedFuture(mockSession)
+
+        whenever(webSocketClient.execute(any(), any())).thenReturn(mockFuture)
+
         // when
         service.init()
 

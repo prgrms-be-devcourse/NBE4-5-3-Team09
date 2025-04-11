@@ -15,7 +15,9 @@ data class OrderbookDto(
     val midPrice: Double,                    // 중간 가격
     val spread: Double,                      // 매도/매수 호가 차이
     val imbalance: Double,                   // 잔량 불균형
-    val liquidityDepth: Double               // ±X% 유동성 비율
+    val liquidityDepth: Double,               // ±X% 유동성 비율
+    var isFallback: Boolean = false,
+    var lastUpdate: String? = null
 ) : CodeDto{
     companion object {
         fun from(orderbook: Orderbook): OrderbookDto = OrderbookDto(

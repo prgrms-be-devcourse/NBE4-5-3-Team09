@@ -8,6 +8,7 @@ import com.coing.infra.upbit.adapter.websocket.handler.UpbitWebSocketTradeHandle
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.context.event.ApplicationReadyEvent
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.context.event.EventListener
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
@@ -22,6 +23,7 @@ class UpbitWebSocketManager(
     private val orderbookHandler: UpbitWebSocketOrderbookHandler,
     private val tickerHandler: UpbitWebSocketTickerHandler,
     private val tradeHandler: UpbitWebSocketTradeHandler,
+    private val eventPublisher: ApplicationEventPublisher
 ) {
     private val connections = mutableMapOf<EnumUpbitWebSocketType, UpbitWebSocketConnection>()
 
@@ -37,19 +39,19 @@ class UpbitWebSocketManager(
     fun init() {
         // ORDERBOOK
         val orderbookComposite = UpbitWebSocketHandler(listOf(orderbookHandler))
-        val orderbookConn = UpbitWebSocketConnection(webSocketClient, orderbookComposite, upbitWebSocketUri, "ORDERBOOK")
+        val orderbookConn = UpbitWebSocketConnection(webSocketClient, orderbookComposite, upbitWebSocketUri, EnumUpbitWebSocketType.ORDERBOOK, eventPublisher)
         connections[EnumUpbitWebSocketType.ORDERBOOK] = orderbookConn
         orderbookConn.connect()
 
         // TICKER
         val tickerComposite = UpbitWebSocketHandler(listOf(tickerHandler))
-        val tickerConn = UpbitWebSocketConnection(webSocketClient, tickerComposite, upbitWebSocketUri, "TICKER")
+        val tickerConn = UpbitWebSocketConnection(webSocketClient, tickerComposite, upbitWebSocketUri, EnumUpbitWebSocketType.TICKER, eventPublisher)
         connections[EnumUpbitWebSocketType.TICKER] = tickerConn
         tickerConn.connect()
 
         // TRADE
         val tradeComposite = UpbitWebSocketHandler(listOf(tradeHandler))
-        val tradeConn = UpbitWebSocketConnection(webSocketClient, tradeComposite, upbitWebSocketUri, "TRADE")
+        val tradeConn = UpbitWebSocketConnection(webSocketClient, tradeComposite, upbitWebSocketUri, EnumUpbitWebSocketType.TRADE, eventPublisher)
         connections[EnumUpbitWebSocketType.TRADE] = tradeConn
         tradeConn.connect()
     }

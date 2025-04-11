@@ -19,7 +19,7 @@ import org.springframework.stereotype.Component
 @Component
 class UpbitWebSocketEventAdapter(
     private val orderbookHandler: CoinDataHandler<Orderbook>,
-    private val ticketHandler: CoinDataHandler<Ticker>,
+    private val tickerHandler: CoinDataHandler<Ticker>,
     private val tradeHandler: CoinDataHandler<Trade>,
     private val tickerService: TickerService
 ) {
@@ -31,7 +31,7 @@ class UpbitWebSocketEventAdapter(
     fun handleTickerEvent(dto: UpbitWebSocketTickerDto) {
         val oneMinuteRate = tickerService.calculateOneMinuteRate(dto.code, dto.tradePrice)
         val ticker: Ticker = dto.toEntity(oneMinuteRate)
-        ticketHandler.update(ticker)
+        tickerHandler.update(ticker)
     }
 
     fun handleTradeEvent(dto: UpbitWebSocketTradeDto) {

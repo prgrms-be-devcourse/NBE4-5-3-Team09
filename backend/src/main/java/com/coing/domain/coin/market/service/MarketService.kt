@@ -9,6 +9,8 @@ import com.coing.domain.user.dto.CustomUserPrincipal
 import com.coing.global.exception.BusinessException
 import com.coing.util.MessageUtil
 import com.coing.util.PageUtil
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker
+import io.github.resilience4j.retry.annotation.Retry
 import jakarta.transaction.Transactional
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Page
@@ -30,22 +32,24 @@ class MarketService(
 
 	@Transactional
 	@Scheduled(initialDelay = 0, fixedRate = 6 * 60 * 60 * 1000)
+    @Retry(name = "upbit-rest-api")
+    @CircuitBreaker(name = "upbit-rest-api", fallbackMethod = "fallbackFetchMarkets")
 	fun updateMarketList() {
 		val markets = fetchAndUpdateCoins()
 		marketCacheService.updateMarketCache(markets)
 	}
 
-	private fun fetchAndUpdateCoins(): List<Market> {
-		return try {
-			val markets = marketDataPort.fetchMarkets()
-			marketRepository.saveAll(markets)
-			log.info("[Market] Market list updated.")
-			markets
-		} catch (e: Exception) {
-			log.error("[Market] Error updating: ${e.message}. Falling back to DB.")
-			marketRepository.findAll()
-		}
-	}
+    private fun fetchAndUpdateCoins(): List<Market> {
+        val markets = marketDataPort.fetchMarkets()
+        marketRepository.saveAll(markets)
+        log.info("[Market] Market list updated.")
+        return markets
+    }
+
+    fun fallbackFetchMarkets(ex: Throwable): List<Market> {
+        log.error("[Market] Error updating markets: ${ex.message}. Falling back to DB.")
+        return marketRepository.findAll()
+    }
 
 	fun getMarkets(pageable: Pageable): Page<Market> {
 		val allMarkets = getCachedMarketList()

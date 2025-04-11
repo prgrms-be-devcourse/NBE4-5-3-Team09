@@ -77,6 +77,17 @@ class TradeService(
         }
     }
 
+    override fun fallbackUpdate(lastUpdate: String) {
+        tradeListCache.forEach { (code, queue) ->
+            val latest = queue.lastOrNull()
+            if (latest != null) {
+                latest.isFallback = true
+                latest.lastUpdate = lastUpdate
+                publish(latest)
+            }
+        }
+    }
+
     @Scheduled(cron = "0 0 0 * * *")
     fun resetCaches() {
         vwapCache.clear()
