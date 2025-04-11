@@ -243,17 +243,27 @@ internal class UserControllerTest {
         verify(userService, times(1)).quit(principal.id, signOutRequest.password)
     }
 
-    @Suppress("UNCHECKED_CAST")
     @Test
     @DisplayName("회원 정보 조회 - 성공")
     fun testGetUserInfoSuccess() {
         val principal = CustomUserPrincipal(UUID.randomUUID())
-        val userResponse = UserResponse(principal.id, "테스트", "test@test.com",true, Authority.ROLE_USER)
-        `when`(userService.findById(principal.id)).thenReturn(userResponse)
-        val result = userController.getUserInfo(principal) as? ResponseEntity<UserResponse>
-            ?: throw IllegalStateException("Expected ResponseEntity<UserResponse>")
+        val user = User(
+            id = principal.id,
+            name = "테스트",
+            email = "test@test.com",
+            password = "dummy",
+            authority = Authority.ROLE_USER,
+            verified = true,
+            provider = Provider.EMAIL
+            // chatMessages는 기본값 사용
+        )
+        val userInfoResponse = UserInfoResponse.from(user)
+        `when`(userService.getUserInfoById(principal.id)).thenReturn(userInfoResponse)
+
+        val result: ResponseEntity<Any> = userController.getUserInfo(principal)
         assertEquals(HttpStatus.OK, result.statusCode)
-        val responseBody = result.body as UserResponse
+        val responseBody = result.body as? UserInfoResponse
+            ?: throw IllegalStateException("Expected UserInfoResponse should not be null")
         assertEquals("test@test.com", responseBody.email)
     }
 
