@@ -45,7 +45,10 @@ export default function NewsList({ news: initialNews }: NewsListProps) {
     <div className="bg-card rounded-lg shadow-sm overflow-hidden">
       <div className="p-4 border-b border-muted flex justify-between items-center">
         <h2 className="text-lg font-semibold">뉴스</h2>
-        <button onClick={refreshNews} className="px-3 py-1 text-sm border rounded hover:bg-muted">
+        <button
+          onClick={refreshNews}
+          className="px-3 py-1 text-sm border rounded hover:bg-muted"
+        >
           새로고침
         </button>
       </div>
