@@ -13,12 +13,13 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     query.unit = minuteUnit;
   }
 
+  const enumType = type as 'seconds' | 'minutes' | 'days' | 'weeks' | 'months' | 'years';
   try {
     const response = await client.GET('/api/candles/{market}/{type}', {
       params: {
         path: {
           market,
-          type,
+          type: enumType,
         },
         query,
       },
