@@ -19,18 +19,13 @@ declare global {
         init: (key: string) => void;
         isInitialized: () => boolean;
         Share: {
-            createCustomButton: (config: {
-                container: string | HTMLElement;
+            sendCustom: (config: {
                 templateId: number;
                 templateArgs: {
                     title: string;
                     description: string;
                     path: string;
                 }
-            }) => void;
-            sendCustom: (config: {
-                templateId: number;
-                templateArgs?: Record<string, string>;
             }) => void;
         };
     }
@@ -43,44 +38,39 @@ declare global {
 export default function ShareModal({ onClose, market, ticker }: { onClose: () => void; market: string; ticker: TickerDto | null }) {
     const [open, setOpen] = useState(true);
     const currentUrl = typeof window !== 'undefined' ? window.location.href : '';
+    const templateIdStr = process.env.NEXT_PUBLIC_KAKAO_MESSAGE_TEMPLATE_ID;
+    const templateId = templateIdStr !== undefined ? Number(templateIdStr) : 0;
 
-    // Kakao SDK 초기화 및 버튼 생성
     useEffect(() => {
-        const initKakao = () => {
-            if (window.Kakao && !window.Kakao.isInitialized()) {
-                window.Kakao.init(process.env.NEXT_PUBLIC_KAKAO_JS_KEY!);
-            }
+        if (window.Kakao && !window.Kakao.isInitialized()) {
+            window.Kakao.init(process.env.NEXT_PUBLIC_KAKAO_JS_KEY!);
+        }
+    }, []);
 
-            const marketName = ticker
-                ? `${ticker.koreanName} ${market}`
-                : market
+    const handleKakaoShare = () => {
+        if (!window.Kakao?.Share) return;
 
-            const price = ticker
-                ? `${ticker.tradePrice.toLocaleString()} ${ticker.code.split('-')[0]}`
-                : '가격 정보 없음'
+        const marketName = ticker
+            ? `${ticker.koreanName} ${market}`
+            : market;
 
-            const rate = ticker
-                ? (ticker.signedChangeRate * 100).toFixed(2) + '%'
-                : '정보 없음'
+        const price = ticker
+            ? `${ticker.tradePrice.toLocaleString()} ${ticker.code.split('-')[0]}`
+            : '가격 정보 없음';
 
-            if (window.Kakao?.Share && document.getElementById('kakaotalk-sharing-btn')) {
-                window.Kakao.Share.createCustomButton({
-                    container: '#kakaotalk-sharing-btn',
-                    templateId: 119558,
-                    templateArgs: {
-                        title: marketName,
-                        description: `현재가 ${price}\n변동률 ${rate}`,
-                        path: '/coin/' + market
-                    },
-                });
-            }
-        };
+        const rate = ticker
+            ? (ticker.signedChangeRate * 100).toFixed(2) + '%'
+            : '정보 없음';
 
-        // DOM 렌더링 이후 실행되도록 지연
-        setTimeout(() => {
-            initKakao();
-        }, 100);
-    }, [currentUrl]);
+        window.Kakao.Share.sendCustom({
+            templateId: templateId,
+            templateArgs: {
+                title: marketName,
+                description: `현재가 ${price}\n변동률 ${rate}`,
+                path: '/coin/' + market,
+            },
+        });
+    };
 
     const handleCopy = async () => {
         await navigator.clipboard.writeText(currentUrl);
@@ -113,10 +103,13 @@ export default function ShareModal({ onClose, market, ticker }: { onClose: () =>
                     </AlertDialogHeader>
                     <AlertDialogFooter className="flex flex-col items-center gap-3 mt-4">
                         <div className="flex justify-center">
-                            <a id="kakaotalk-sharing-btn" href="#">
-                                <img src="https://developers.kakao.com/assets/img/about/logos/kakaotalksharing/kakaotalk_sharing_btn_medium.png"
-                                    alt="카카오톡 공유 보내기 버튼" className='w-9.5 h-9.5' />
-                            </a>
+                            <button onClick={handleKakaoShare}>
+                                <img
+                                    src="https://developers.kakao.com/assets/img/about/logos/kakaotalksharing/kakaotalk_sharing_btn_medium.png"
+                                    alt="카카오톡 공유 보내기 버튼"
+                                    className="w-9.5 h-9.5 cursor-pointer"
+                                />
+                            </button>
                         </div>
                         <AlertDialogAction
                             onClick={handleCopy}
