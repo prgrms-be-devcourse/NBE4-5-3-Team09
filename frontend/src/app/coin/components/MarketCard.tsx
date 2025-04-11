@@ -83,16 +83,40 @@ export default function MarketCard({ market, ticker, onBookmarkToggle }: MarketC
 
             <CardContent className="mt-auto">
               <div className="flex flex-wrap justify-between items-end mt-1">
-                <p
-                  className={`text-xl font-semibold ${ticker ? (ticker.signedChangeRate >= 0 ? 'text-red-500' : 'text-blue-500') : ''}`}
-                >
-                  {ticker ? formatTradePrice(ticker.tradePrice) : '0'}
-                  <span className="ml-1 text-xs">{market.code.split('-')[0]}</span>
-                  {ticker ? ` (${(ticker.oneMinuteRate * 100).toFixed(2) + '%'})` : '-'}
-                </p>
+                <div className="flex items-baseline space-x-1">
+                  <p
+                    className={`text-xl font-semibold ${
+                      ticker
+                        ? ticker.change === 'RISE'
+                          ? 'text-red-500'
+                          : ticker.change === 'FALL'
+                            ? 'text-blue-500'
+                            : 'text-black-500'
+                        : ''
+                    }`}
+                  >
+                    {ticker ? formatTradePrice(ticker.tradePrice) : '0'}
+                    <span className="ml-1 text-xs">{market.code.split('-')[0]}</span>
+                  </p>
+                  <p
+                    className={`text-xl font-semibold ${
+                      ticker
+                        ? ticker.oneMinuteRate > 0
+                          ? 'text-red-500'
+                          : ticker.oneMinuteRate < 0
+                            ? 'text-blue-500'
+                            : 'text-gray-500'
+                        : ''
+                    }`}
+                  >
+                    {ticker ? `(${(ticker.oneMinuteRate * 100).toFixed(2)}%)` : '-'}
+                  </p>
+                </div>
 
                 <p
-                  className={`text-sm ${ticker ? (ticker.signedChangeRate >= 0 ? 'text-red-500' : 'text-blue-500') : ''}`}
+                  className={`text-sm ${
+                    ticker ? (ticker.signedChangeRate >= 0 ? 'text-red-500' : 'text-blue-500') : ''
+                  }`}
                 >
                   {ticker?.signedChangeRate
                     ? formatSignedChangeRate(ticker.signedChangeRate)
