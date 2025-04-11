@@ -98,6 +98,10 @@ naver:
     id: ${NAVER_CLIENT_ID:default_client_id}
     secret: ${NAVER_CLIENT_SECRET:default_client_secret}
 
+firebase:
+  credential:
+    base64: ${FIREBASE_CREDENTIAL_BASE64}
+
 resilience4j:
   retry:
     instances:

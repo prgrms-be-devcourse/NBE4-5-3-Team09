@@ -27,11 +27,6 @@ jobs:
         working-directory: backend
         run: doppler secrets download --no-file --format env-no-quotes > .env
 
-      - name: Firebase Admin SDK 파일 생성
-        working-directory: backend
-        run: |
-          printf "%s" "${{ secrets.COING_FIREBASE_ADMINSDK }}" > src/main/resources/coing-firebase-adminsdk.json
-
       - name: JDK 설치
         uses: actions/setup-java@v4
         with:
