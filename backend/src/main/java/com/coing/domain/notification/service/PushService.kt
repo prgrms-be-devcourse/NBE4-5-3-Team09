@@ -13,6 +13,7 @@ import com.coing.global.exception.BusinessException
 import com.coing.util.MessageUtil
 import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.messaging.Message
+import com.google.firebase.messaging.WebpushConfig
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -94,6 +95,12 @@ class PushService(
                     .putData("title", title)
                     .putData("body", body)
                     .putData("url", "/coin/$marketCode")
+                    .putData("timestamp", System.currentTimeMillis().toString())
+                    .setWebpushConfig(
+                        WebpushConfig.builder()
+                            .putHeader("TTL", "3") // TTL 설정
+                            .build()
+                    )
                     .build()
 
                 log.info("topic: {}", topic)
