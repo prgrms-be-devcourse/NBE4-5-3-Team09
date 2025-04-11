@@ -19,7 +19,7 @@ export type TickerDto = {
   accTradePrice: number; // 누적 거래대금
   accTradePrice24h: number; // 24시간 누적 거래대금
   tradeDate: string; // 최근 거래 일자
-  tradeTime: string; // 최근 거래 시각
+  tradeTime: LocalTime; // 최근 거래 시각
   tradeTimestamp: number; // 체결 타임스탬프
   askBid: AskBid; // 매수/매도 구분
   accAskVolume: number; // 누적 매도량
@@ -37,6 +37,13 @@ export type TickerDto = {
   highBreakout: boolean; // 52주 최고가 갱신 여부
   lowBreakout: boolean; // 52주 최저가 갱신 여부
   oneMinuteRate: number; // 단기 변동률(1분)
+};
+
+type LocalTime = {
+  hour?: number;
+  minute?: number;
+  second?: number;
+  nano?: number;
 };
 
 export enum Change {

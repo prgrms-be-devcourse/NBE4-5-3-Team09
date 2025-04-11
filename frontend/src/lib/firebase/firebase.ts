@@ -14,6 +14,16 @@ const app = initializeApp(firebaseConfig);
 const messaging = getMessaging(app);
 
 onMessage(messaging, (payload) => {
+  const timestamp = parseInt(payload.data?.timestamp || '0', 10);
+  const now = Date.now();
+  const ageInSeconds = (now - timestamp) / 1000;
+
+  // 일정 시간 지난 알림 무시
+  if (ageInSeconds > 5) {
+    console.log('[Foreground] expired push skipped');
+    return;
+  }
+
   const notificationTitle = payload.data?.title;
   const notificationOptions: NotificationOptions = {
     body: payload.data?.body,

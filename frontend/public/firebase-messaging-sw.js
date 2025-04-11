@@ -23,6 +23,16 @@ self.addEventListener('install', function (e) {
 const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage(function (payload) {
+  const timestamp = parseInt(payload.data.timestamp, 10);
+  const now = Date.now();
+  const ageInSeconds = (now - timestamp) / 1000;
+
+  if (ageInSeconds > 5) {
+    // 일정 시간 지난 메시지면 무시
+    console.log('[SW] expired push skipped');
+    return;
+  }
+
   self.registration.showNotification(payload.data.title, {
     body: payload.data.body,
     icon: '/logo.svg',
