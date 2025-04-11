@@ -102,7 +102,7 @@ class TradeService(
                     .filter { it != TradeImpact.NONE && absImpact >= it.threshold }
                     .forEach { impact ->
                         val topic = "$market-$direction-${impact.name}"
-                        val body = String.format(messageUtil.resolveMessage(messageKey), impact.name)
+                        val body = String.format(messageUtil.resolveMessage(messageKey), impact.threshold)
 
                         pushService.sendAsync(
                             title = market,

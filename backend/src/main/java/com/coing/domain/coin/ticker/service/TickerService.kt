@@ -123,7 +123,7 @@ class TickerService(
                     .filter { it != OneMinuteRate.NONE && absRate >= it.threshold }
                     .forEach { rate ->
                         val topic = "$market-$direction-${rate.name}"
-                        val body = String.format(messageUtil.resolveMessage(messageKey), rate.name)
+                        val body = String.format(messageUtil.resolveMessage(messageKey), rate.threshold * 100)
 
                         pushService.sendAsync(
                             title = market,
