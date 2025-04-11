@@ -89,7 +89,7 @@ dependencies {
     implementation("io.github.resilience4j:resilience4j-circuitbreaker:2.3.0")
 }
 
-tasks.named<Test>("test") {
+tasks.withType<Test> {
     useJUnitPlatform()
     systemProperty("spring.profiles.active", "test")
 }
