@@ -6,13 +6,11 @@ import com.coing.domain.coin.candle.port.CandleDataPort
 import com.coing.infra.upbit.adapter.api.constant.UpbitApiEndpoints
 import com.coing.infra.upbit.adapter.api.dto.UpbitApiCandleDto
 import org.slf4j.LoggerFactory
-import org.springframework.context.annotation.Profile
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Component
 import org.springframework.web.client.RestTemplate
 
 @Component
-@Profile("!test")
 class UpbitCandleApiAdapter(
     private val restTemplate: RestTemplate
 ) : CandleDataPort {
@@ -31,17 +29,22 @@ class UpbitCandleApiAdapter(
         return candleList
     }
 
-    private fun buildUrl(market: String, candleType: EnumCandleType, unit: Int?): String = when(candleType) {
+    private fun buildUrl(market: String, candleType: EnumCandleType, unit: Int?): String = when (candleType) {
         EnumCandleType.seconds ->
             "${UpbitApiEndpoints.CANDLES_SECONDS}?market=${market}&count=200"
+
         EnumCandleType.minutes ->
-            "${UpbitApiEndpoints.CANDLES_MINUTES}/${unit?:1}?market=${market}&count=200"
+            "${UpbitApiEndpoints.CANDLES_MINUTES}/${unit ?: 1}?market=${market}&count=200"
+
         EnumCandleType.days ->
             "${UpbitApiEndpoints.CANDLES_DAYS}?market=${market}&count=200"
+
         EnumCandleType.weeks ->
             "${UpbitApiEndpoints.CANDLES_WEEKS}?market=${market}&count=200"
+
         EnumCandleType.months ->
             "${UpbitApiEndpoints.CANDLES_MONTHS}?market=${market}&count=200"
+
         EnumCandleType.years ->
             "${UpbitApiEndpoints.CANDLES_YEARS}?market=${market}&count=200"
     }
