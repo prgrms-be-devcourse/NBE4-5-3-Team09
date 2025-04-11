@@ -9,7 +9,12 @@ import { useAuth } from '@/context/AuthContext';
 
 import PaginationComponent from '@/components/Pagination';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { subscribeUserToPush } from '@/app/api/notification/route';
+import { getToken, messaging } from '@/lib/firebase/firebase';
+import { ensureServiceWorkerRegistered } from '@/lib/firebase/register-sw';
+import { client } from '@/lib/api/client';
+import type { components } from '@/lib/api/generated/schema';
+
+type PushTokenSaveRequest = components['schemas']['PushTokenSaveRequest'];
 
 export default function Page() {
   const [pagination, setPagination] = useState<PaginationDto>({
@@ -42,6 +47,53 @@ export default function Page() {
       });
     }
   }, [accessToken]);
+
+  let isSubscribing = false;
+
+  // 푸시 토큰 초기 등록 (POST /api/push/register)
+  async function subscribeUserToPush(accessToken: string | null) {
+    if (isSubscribing || localStorage.getItem('push_subscribed') === 'true') return;
+
+    isSubscribing = true;
+
+    const registration = await ensureServiceWorkerRegistered();
+    if (!registration?.active) {
+      localStorage.removeItem('push_subscribed');
+      isSubscribing = false;
+      return;
+    }
+
+    try {
+      const token = await getToken(messaging, {
+        vapidKey: process.env.NEXT_PUBLIC_VAPID_KEY,
+        serviceWorkerRegistration: registration,
+      });
+
+      if (token) {
+        const body: PushTokenSaveRequest = { token };
+
+        const { error } = await client.POST('/api/push/register', {
+          body,
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        });
+
+        if (error) {
+          throw new Error('푸시 토큰 등록 실패');
+        }
+
+        localStorage.setItem('push_subscribed', 'true');
+        console.log('푸시 구독 완료');
+      } else {
+        console.error('푸시 토큰 저장 실패');
+      }
+    } catch (err) {
+      console.error('푸시 구독 중 에러 발생:', err);
+    } finally {
+      isSubscribing = false;
+    }
+  }
 
   async function fetchMarkets() {
     try {
