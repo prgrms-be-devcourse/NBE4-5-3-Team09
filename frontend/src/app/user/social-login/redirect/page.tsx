@@ -1,17 +1,13 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
-import { useUserStore } from '@/store/user.store';
 
 export default function SocialLoginRedirectPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { accessToken, setAccessToken } = useAuth();
   const hasFetched = useRef(false);
-  const { user, deleteUser } = useUserStore();
 
   useEffect(() => {
     if (hasFetched.current) return;
@@ -39,7 +35,6 @@ export default function SocialLoginRedirectPage() {
             const authHeader = response.headers.get('Authorization');
             if (authHeader?.startsWith('Bearer ')) {
               const token = authHeader.slice(7);
-              setAccessToken(token);
               console.log('Access Token 저장됨:', token);
             }
             router.push('/');
@@ -70,8 +65,6 @@ export default function SocialLoginRedirectPage() {
 
           if (response.ok) {
             toast.success('회원 탈퇴 성공');
-            setAccessToken(null);
-            deleteUser();
             window.location.href = '/user/login';
           } else {
             const errorData = await response.json();
@@ -88,7 +81,7 @@ export default function SocialLoginRedirectPage() {
       alert('유효하지 않은 요청입니다.');
       router.push('/');
     }
-  }, [searchParams, router, setAccessToken]);
+  }, [searchParams, router]);
 
   return <div>처리 중...</div>;
 }
