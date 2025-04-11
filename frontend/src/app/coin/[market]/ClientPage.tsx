@@ -12,6 +12,7 @@ import Ticker from '@/app/coin/components/Ticker';
 import { fetchApi } from '@/lib/api';
 import ChatPopup from '@/app/coin/components/ChatPopup'; // 채팅 모달 컴포넌트
 import ShareModal from '@/app/coin/components/ShareModal';
+import NotificationPopup from '../components/NotificationPopup';
 
 export default function ClientPage() {
   const { market } = useParams() as { market: string };
@@ -36,6 +37,8 @@ export default function ClientPage() {
   const [isChatPopupOpen, setChatPopupOpen] = useState(false);
 
   const [isShareOpen, setShareOpen] = useState(false);
+  // 알림설정 팝업 표시 상태
+  const [isNotificationPopupOpen, setNotificationPopupOpen] = useState(false);
 
   // 로그인 여부 상태: 세션 스토리지에 accessToken이 있으면 로그인된 것으로 판단
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -105,20 +108,34 @@ export default function ClientPage() {
 
   return (
     <div style={{ position: 'relative' }}>
-      <button
-        onClick={() => setShareOpen(!isShareOpen)}
-        className="absolute top-4 right-40 z-10 px-3 py-2 rounded-md bg-gray-200 hover:bg-gray-300"
-      >
-        공유하기
-      </button>
-      {/* 우측 상단 채팅방 버튼 */}
-      <button
-        onClick={() => (isLoggedIn ? setChatPopupOpen(true) : alert('로그인이 필요합니다.'))}
-        disabled={!isLoggedIn}
-        className="absolute top-4 right-4 z-10 px-3 py-2 rounded-md transition-colors bg-primary text-primary-foreground dark:text-black dark:bg-primary-dark hover:bg-primary/90"
-      >
-        채팅방(회원 전용)
-      </button>
+      {/* 우측 상단 버튼 영역 */}
+      <div className="absolute top-4 right-4 z-10 flex gap-2">
+        {/* 알림 설정 버튼 */}
+        <button
+          onClick={() =>
+            isLoggedIn ? setNotificationPopupOpen(true) : alert('로그인이 필요합니다.')
+          }
+          className="px-3 py-2 rounded-md transition-colors bg-primary text-primary-foreground dark:text-black dark:bg-primary-dark hover:bg-primary/90"
+        >
+          알림 설정
+        </button>
+
+        {/* 공유하기 버튼 */}
+        <button
+          onClick={() => setShareOpen(!isShareOpen)}
+          className="px-3 py-2 rounded-md transition-colors bg-primary text-primary-foreground dark:text-black dark:bg-primary-dark hover:bg-primary/90"
+        >
+          공유하기
+        </button>
+
+        {/* 채팅방 버튼 */}
+        <button
+          onClick={() => (isLoggedIn ? setChatPopupOpen(true) : alert('로그인이 필요합니다.'))}
+          className="px-3 py-2 rounded-md transition-colors bg-primary text-primary-foreground dark:text-black dark:bg-primary-dark hover:bg-primary/90"
+        >
+          채팅방(회원 전용)
+        </button>
+      </div>
 
       <Ticker market={market} ticker={ticker} />
       <div className="space-y-4">
@@ -144,6 +161,14 @@ export default function ClientPage() {
       {/* 공유 모달 */}
       {isShareOpen && (
         <ShareModal onClose={() => setShareOpen(false)} market={market} ticker={ticker} />
+      )}
+      {/* 알림 설정 팝업 */}
+      {isNotificationPopupOpen && (
+        <NotificationPopup
+          market={market}
+          accessToken={sessionStorage.getItem('accessToken') ?? ''}
+          onClose={() => setNotificationPopupOpen(false)}
+        />
       )}
     </div>
   );

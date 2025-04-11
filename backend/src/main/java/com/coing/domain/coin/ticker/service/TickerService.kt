@@ -5,12 +5,15 @@ import com.coing.domain.coin.common.port.EventPublisher
 import com.coing.domain.coin.market.service.MarketService
 import com.coing.domain.coin.ticker.dto.TickerDto
 import com.coing.domain.coin.ticker.entity.Ticker
+import com.coing.domain.notification.entity.OneMinuteRate
 import com.coing.domain.notification.service.PushService
 import com.coing.global.exception.BusinessException
 import com.coing.util.MessageUtil
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import java.util.*
@@ -22,11 +25,13 @@ class TickerService(
     private val messageUtil: MessageUtil,
     private val marketService: MarketService,
     private val eventPublisher: EventPublisher<TickerDto>,
-    private val pushService: PushService
+    private val pushService: PushService,
+    private val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO)
 ) : CoinDataHandler<Ticker> {
     private val tickerListCache: MutableMap<String, Deque<TickerDto>> = ConcurrentHashMap()
     private val lastSentTime = ConcurrentHashMap<String, Long>()
     private val lastPushSentTime = ConcurrentHashMap<String, Long>()
+    private val pushMutexMap = ConcurrentHashMap<String, Mutex>()
 
     companion object {
         private const val THROTTLE_INTERVAL_MS = 200L
@@ -103,26 +108,35 @@ class TickerService(
     fun pushMessage(dto: TickerDto) {
         val market = dto.code
         val now = System.currentTimeMillis()
-        val lastSent = lastPushSentTime[market] ?: 0L
+        val mutex = pushMutexMap.computeIfAbsent(market) { Mutex() }
 
-        if (now - lastSent < PUSH_THROTTLE_INTERVAL_MS) return
+        coroutineScope.launch {
+            mutex.withLock {
+                val lastSent = lastPushSentTime[market] ?: 0L
+                if (now - lastSent < PUSH_THROTTLE_INTERVAL_MS) return@withLock
 
-        val (_, messageKey) = when {
-            dto.oneMinuteRate >= 0.05 -> 0.05 to "high.rate"
-            dto.oneMinuteRate <= -0.05 -> -0.05 to "low.rate"
-            else -> return
-        }
+                val absRate = kotlin.math.abs(dto.oneMinuteRate)
+                val direction = if (dto.oneMinuteRate > 0) "HIGH" else "LOW"
+                val messageKey = if (dto.oneMinuteRate > 0) "high.rate" else "low.rate"
 
-        CoroutineScope(Dispatchers.IO).launch {
-            pushService.sendAsync(
-                market,
-                messageUtil.resolveMessage(messageKey),
-                market
-            )
-            lastPushSentTime[market] = now
+                OneMinuteRate.entries
+                    .filter { it != OneMinuteRate.NONE && absRate >= it.threshold }
+                    .forEach { rate ->
+                        val topic = "$market-$direction-${rate.name}"
+                        val body = String.format(messageUtil.resolveMessage(messageKey), rate.threshold * 100)
+
+                        pushService.sendAsync(
+                            title = market,
+                            body = body,
+                            marketCode = market,
+                            topic = topic
+                        )
+                    }
+
+                lastPushSentTime[market] = now
+            }
         }
     }
-
 
     fun publish(dto: TickerDto) {
         val market = dto.code

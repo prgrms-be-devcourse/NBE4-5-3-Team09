@@ -1,24 +1,27 @@
 package com.coing.domain.notification
 
-import com.coing.domain.bookmark.entity.Bookmark
-import com.coing.domain.bookmark.repository.BookmarkRepository
 import com.coing.domain.coin.market.entity.Market
+import com.coing.domain.coin.market.repository.MarketRepository
+import com.coing.domain.notification.entity.OneMinuteRate
 import com.coing.domain.notification.entity.PushToken
+import com.coing.domain.notification.entity.Subscribe
+import com.coing.domain.notification.entity.TradeImpact
 import com.coing.domain.notification.repository.PushTokenRepository
+import com.coing.domain.notification.repository.SubscribeRepository
 import com.coing.domain.notification.service.PushService
+import com.coing.domain.notification.service.SubscribeManager
 import com.coing.domain.user.entity.User
 import com.coing.domain.user.repository.UserRepository
 import com.coing.global.exception.BusinessException
 import com.coing.util.MessageUtil
 import com.google.firebase.messaging.FirebaseMessaging
-import com.google.firebase.messaging.Message
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
+import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.DisplayName
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
-import org.mockito.InjectMocks
 import org.mockito.Mock
 import org.mockito.Mockito.*
 import org.mockito.junit.jupiter.MockitoExtension
@@ -32,55 +35,61 @@ class PushServiceTest {
     private lateinit var userRepository: UserRepository
 
     @Mock
+    private lateinit var marketRepository: MarketRepository
+
+    @Mock
     private lateinit var pushTokenRepository: PushTokenRepository
 
     @Mock
-    private lateinit var bookmarkRepository: BookmarkRepository
+    private lateinit var subscribeRepository: SubscribeRepository
 
     @Mock
     private lateinit var messageUtil: MessageUtil
 
-    @InjectMocks
-    private lateinit var pushService: PushService
-
     @Mock
     private lateinit var firebaseMessaging: FirebaseMessaging
 
+    @Mock
+    private lateinit var subscribeManager: SubscribeManager
+
+    private lateinit var pushService: PushService
+
+    private val testDispatcher = StandardTestDispatcher()
+    private val testScope = CoroutineScope(testDispatcher)
+
     private val userId = UUID.randomUUID()
 
-    private fun getTestUser(): User {
-        return User(
-            id = userId,
-            email = "test@example.com",
-            password = "pass"
+    private fun getTestUser(): User = User(id = userId, email = "test@example.com", password = "pass")
+
+    private fun getTestMarket(): Market = Market(code = "KRW-BTC", koreanName = "비트코인", englishName = "Bitcoin")
+
+    @BeforeEach
+    fun setUp() {
+        pushService = PushService(
+            userRepository,
+            marketRepository,
+            pushTokenRepository,
+            subscribeRepository,
+            messageUtil,
+            firebaseMessaging,
+            subscribeManager,
+            testScope
         )
     }
 
-    private fun getTestMarket(): Market {
-        return Market(
-            code = "KRW-BTC",
-            koreanName = "비트코인",
-            englishName = "Bitcoin"
-        )
+    @AfterEach
+    fun clear() {
+        testScope.cancel() // 테스트 종료 시 코루틴 정리
     }
-
-    private fun getTestBookmarks(user: User, market: Market): List<Bookmark> {
-        return listOf(
-            Bookmark(user = user, market = market, id = 1),
-        )
-    }
-
-    private fun getToken() = "tokenA"
-    private fun getTokens() = listOf("tokenA", "tokenB")
 
     @Test
-    @DisplayName("subscribeAll - 존재하지 않는 유저 예외")
-    fun subscribeAll_userNotFound_throwsException() {
+    @DisplayName("saveToken - 유저 없을 시 예외 발생")
+    fun saveToken_userNotFound() {
         `when`(userRepository.findById(userId)).thenReturn(Optional.empty())
         `when`(messageUtil.resolveMessage("member.not.found")).thenReturn("User not found")
 
         val exception = assertThrows<BusinessException> {
-            pushService.subscribeAll(userId, "dummy-token")
+            pushService.saveToken(userId, "token123")
         }
 
         assertEquals("User not found", exception.message)
@@ -88,68 +97,85 @@ class PushServiceTest {
     }
 
     @Test
-    @DisplayName("subscribeAll - 성공적으로 토큰 저장 및 토픽 구독")
-    fun subscribeAll_success() {
+    @DisplayName("saveToken - 중복되지 않은 경우 저장")
+    fun saveToken_success() {
         val user = getTestUser()
-        val token = getToken()
-        val market = getTestMarket()
-        val bookmarks = getTestBookmarks(user, market)
-
         `when`(userRepository.findById(userId)).thenReturn(Optional.of(user))
         `when`(pushTokenRepository.findAllByUserId(userId)).thenReturn(emptyList())
-        `when`(bookmarkRepository.findByUserId(userId)).thenReturn(bookmarks)
 
-        pushService.subscribeAll(userId, token)
+        pushService.saveToken(userId, "token123")
 
         verify(pushTokenRepository).save(any())
-        verify(firebaseMessaging).subscribeToTopic(listOf(token), "KRW-BTC")
     }
 
     @Test
-    @DisplayName("sendAsync - 예외 없이 성공")
+    @DisplayName("updateSubscription - topic 구독 변경 및 DB 반영")
+    fun updateSubscription_success() = runTest {
+        val user = getTestUser()
+        val market = getTestMarket()
+        val tokens = listOf("tokenA", "tokenB")
+        val oldRate = OneMinuteRate.THREE
+        val newRate = OneMinuteRate.FIVE
+        val oldImpact = TradeImpact.SLIGHT
+        val newImpact = TradeImpact.MEDIUM
+
+        `when`(userRepository.findById(userId)).thenReturn(Optional.of(user))
+        `when`(marketRepository.findByCode(market.code)).thenReturn(market)
+        `when`(pushTokenRepository.findAllByUserId(userId)).thenReturn(
+            tokens.map { token -> PushToken(user = user, token = token) }
+        )
+        `when`(subscribeRepository.findByUser_IdAndMarket_Code(userId, market.code)).thenReturn(null)
+
+        pushService.updateSubscription(userId, market.code, newRate, oldRate, newImpact, oldImpact)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        verify(subscribeRepository).save(any())
+        verify(subscribeManager).updateTopicsAsync(tokens, market.code, newRate, oldRate, newImpact, oldImpact)
+    }
+
+    @Test
+    @DisplayName("getSubscribeInfo - 구독 정보 조회")
+    fun getSubscribeInfo_success() {
+        val user = getTestUser()
+        val market = getTestMarket()
+        val subscribe = Subscribe(
+            user = user,
+            market = market,
+            oneMinuteRate = OneMinuteRate.THREE,
+            tradeImpact = TradeImpact.MEDIUM
+        )
+
+        `when`(subscribeRepository.findByUser_IdAndMarket_Code(userId, market.code)).thenReturn(subscribe)
+
+        val result = pushService.getSubscribeInfo(userId, market.code)
+
+        assertEquals(OneMinuteRate.THREE, result.oneMinuteRate)
+        assertEquals(TradeImpact.MEDIUM, result.tradeImpact)
+    }
+
+    @Test
+    @DisplayName("getSubscribeInfo - 구독 정보 없으면 NONE 반환")
+    fun getSubscribeInfo_none() {
+        `when`(subscribeRepository.findByUser_IdAndMarket_Code(userId, "KRW-BTC")).thenReturn(null)
+
+        val result = pushService.getSubscribeInfo(userId, "KRW-BTC")
+
+        assertEquals(OneMinuteRate.NONE, result.oneMinuteRate)
+        assertEquals(TradeImpact.NONE, result.tradeImpact)
+    }
+
+    @Test
+    @DisplayName("sendAsync - 메시지 정상 전송")
     fun sendAsync_success() = runTest {
-        `when`(firebaseMessaging.send(any(Message::class.java))).thenReturn("message-id")
-
-        pushService.sendAsync("Title", "Body", "KRW-BTC")
-
-        verify(firebaseMessaging).send(any(Message::class.java))
+        pushService.sendAsync("제목", "내용", "KRW-BTC", "KRW-BTC-HIGH-1")
+        verify(firebaseMessaging).send(any())
     }
 
     @Test
-    @DisplayName("sendAsync - 예외 발생 시 로깅만")
-    fun sendAsync_failure_logsError() = runTest {
-        `when`(firebaseMessaging.send(any(Message::class.java))).thenThrow(RuntimeException("FCM 실패"))
-
-        pushService.sendAsync("Title", "Body", "KRW-BTC")
-
-        verify(firebaseMessaging).send(any(Message::class.java))
-    }
-
-    @Test
-    @DisplayName("subscribe - 유저의 모든 토큰에 대해 토픽 구독")
-    fun subscribe_success() {
-        val tokens = getTokens()
-        val user = getTestUser()
-        val pushTokens = tokens.map { PushToken(user = user, token = it) }
-
-        `when`(pushTokenRepository.findAllByUserId(userId)).thenReturn(pushTokens)
-
-        pushService.subscribe(userId, "KRW-BTC")
-
-        verify(firebaseMessaging).subscribeToTopic(tokens, "KRW-BTC")
-    }
-
-    @Test
-    @DisplayName("unsubscribe - 유저의 모든 토큰에 대해 토픽 구독 해제")
-    fun unsubscribe_success() {
-        val tokens = getTokens()
-        val user = getTestUser()
-        val pushTokens = tokens.map { PushToken(user = user, token = it) }
-
-        `when`(pushTokenRepository.findAllByUserId(userId)).thenReturn(pushTokens)
-
-        pushService.unsubscribe(userId, "KRW-BTC")
-
-        verify(firebaseMessaging).unsubscribeFromTopic(tokens, "KRW-BTC")
+    @DisplayName("sendAsync - 전송 실패시 예외 로그 출력")
+    fun sendAsync_failure() = runTest {
+        `when`(firebaseMessaging.send(any())).thenThrow(RuntimeException("전송 실패"))
+        pushService.sendAsync("제목", "내용", "KRW-BTC", "KRW-BTC-HIGH-1")
+        verify(firebaseMessaging).send(any())
     }
 }
