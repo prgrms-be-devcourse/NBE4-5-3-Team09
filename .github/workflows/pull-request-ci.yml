@@ -23,11 +23,6 @@ jobs:
             backend-changed:
               - 'backend/**'
 
-      - name: Generate Firebase Admin SDK file
-        working-directory: backend
-        run: |
-          printf "%s" "${{ secrets.COING_FIREBASE_ADMINSDK }}" > src/main/resources/coing-firebase-adminsdk.json
-
       - name: Navigate to backend directory
         run: cd backend
 
