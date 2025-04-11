@@ -38,7 +38,7 @@ jobs:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/*.gradle.kts', '**/gradle-wrapper.properties') }}
           restore-keys: |
             ${{ runner.os }}-gradle-
 
@@ -59,6 +59,7 @@ jobs:
         run: ./gradlew test
         working-directory: backend
         env:
+          SPRING_ACTIVE_PROFILES: test
           JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
           JWT_EXPIRE_SECONDS: ${{ secrets.JWT_EXPIRE_SECONDS }}
           JWT_REFRESH_EXPIRE_SECONDS: ${{ secrets.JWT_REFRESH_EXPIRE_SECONDS }}

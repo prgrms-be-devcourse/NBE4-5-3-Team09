@@ -101,14 +101,14 @@ naver:
 resilience4j:
   retry:
     instances:
-      upbit-rest-api:
-        max-attempts: 3
-        wait-duration: 1s
-        enable-exponential-backoff: true
-        exponential-backoff-multiplier: 2
       upbitWebSocket:
         max-attempts: 6
         wait-duration: 2s
+        enable-exponential-backoff: true
+        exponential-backoff-multiplier: 2
+      upbit-rest-api:
+        max-attempts: 3
+        wait-duration: 1s
         enable-exponential-backoff: true
         exponential-backoff-multiplier: 2
   circuitbreaker:

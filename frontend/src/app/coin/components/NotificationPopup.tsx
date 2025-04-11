@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { Dialog } from '@headlessui/react';
-import { updatePushTopics, fetchSubscribeInfo } from '@/app/api/notification/route';
+import { client } from '@/lib/api/client';
+import type { components } from '@/lib/api/generated/schema';
 
-export type OneMinuteRate = 'NONE' | 'ONE' | 'THREE' | 'FIVE' | 'TEN';
-export type ImpactThreshold = 'NONE' | 'SLIGHT' | 'MEDIUM' | 'STRONG';
+type OneMinuteRate = components['schemas']['SubscribeInfo']['oneMinuteRate'];
+type TradeImpact = components['schemas']['SubscribeInfo']['tradeImpact'];
+type SubscribeRequest = components['schemas']['SubscribeRequest'];
 
 interface NotificationPopupProps {
   market: string;
@@ -21,7 +23,7 @@ const RATE_OPTIONS: { value: OneMinuteRate; label: string }[] = [
   { value: 'TEN', label: '10% 이상' },
 ];
 
-const IMPACT_OPTIONS: { value: ImpactThreshold; label: string }[] = [
+const IMPACT_OPTIONS: { value: TradeImpact; label: string }[] = [
   { value: 'NONE', label: '받지 않음' },
   { value: 'SLIGHT', label: '0.1% 이상' },
   { value: 'MEDIUM', label: '0.5% 이상' },
@@ -36,8 +38,8 @@ export default function NotificationPopup({
   const [currentRate, setCurrentRate] = useState<OneMinuteRate>('NONE');
   const [selectedRate, setSelectedRate] = useState<OneMinuteRate>('NONE');
 
-  const [currentImpact, setCurrentImpact] = useState<ImpactThreshold>('NONE');
-  const [selectedImpact, setSelectedImpact] = useState<ImpactThreshold>('NONE');
+  const [currentImpact, setCurrentImpact] = useState<TradeImpact>('NONE');
+  const [selectedImpact, setSelectedImpact] = useState<TradeImpact>('NONE');
 
   useEffect(() => {
     fetchSubscribeInfo(accessToken, market)
@@ -68,6 +70,63 @@ export default function NotificationPopup({
     }
   };
 
+  // 알림 설정 변경 (POST /api/push/subscribe)
+  async function updatePushTopics(
+    accessToken: string,
+    market: string,
+    subscribeRate: OneMinuteRate,
+    unsubscribeRate: OneMinuteRate,
+    subscribeImpact: TradeImpact,
+    unsubscribeImpact: TradeImpact,
+  ) {
+    const body: SubscribeRequest = {
+      market,
+      subscribeInfo: {
+        oneMinuteRate: subscribeRate,
+        tradeImpact: subscribeImpact,
+      },
+      unsubscribeInfo: {
+        oneMinuteRate: unsubscribeRate,
+        tradeImpact: unsubscribeImpact,
+      },
+    };
+
+    const { error } = await client.POST('/api/push/subscribe', {
+      body,
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+
+    if (error) {
+      console.error('알림 구독 변경 실패:', error);
+      throw error;
+    }
+
+    console.log('알림 구독 변경 완료');
+  }
+
+  // 현재 구독 정보 조회 API
+  async function fetchSubscribeInfo(
+    accessToken: string,
+    market: string,
+  ): Promise<components['schemas']['SubscribeInfo']> {
+    const { data, error } = await client.GET('/api/push/subscribe-info', {
+      params: {
+        query: { market },
+      },
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+
+    if (error || !data) {
+      throw new Error('구독 정보를 가져오는 데 실패했습니다.');
+    }
+
+    return data;
+  }
+
   return (
     <Dialog open onClose={onClose} className="fixed inset-0 z-50 flex items-center justify-center">
       {/* ✅ 팝업 외 배경 (Overlay) */}
@@ -97,7 +156,7 @@ export default function NotificationPopup({
           </label>
           <select
             value={selectedImpact}
-            onChange={(e) => setSelectedImpact(e.target.value as ImpactThreshold)}
+            onChange={(e) => setSelectedImpact(e.target.value as TradeImpact)}
             className="w-full rounded-md border border-gray-300 p-2 dark:bg-gray-700 dark:text-white"
           >
             {IMPACT_OPTIONS.map((opt) => (
