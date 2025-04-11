@@ -67,6 +67,10 @@ export default function UserInfoPage() {
     }
   };
 
+  const handleKakaoSignOut = () => {
+    window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/oauth2/authorization/kakao?purpose=delete_account`;
+  };
+
   if (fetching) {
     return <div className="w-full flex justify-center bg-background">로딩 중...</div>;
   }
@@ -85,55 +89,93 @@ export default function UserInfoPage() {
             <p className="mt-1 text-lg">{user.email}</p>
           </div>
         </div>
-        <div className="mt-8">
-          <label
-            htmlFor="password"
-            className="block text-sm font-semibold text-muted-foreground mb-2"
-          >
-            회원 탈퇴를 위해 비밀번호 입력
-          </label>
-          <div className="relative mt-2">
-            <Lock className="absolute left-3 top-2.5 h-4 w-4 text-primary" />
-            <Input
-              id="password"
-              type="password"
-              placeholder="비밀번호를 입력하세요"
-              value={password}
-              required
-              className="border border-input pl-10 placeholder:text-primary bg-background"
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </div>
-        </div>
-        <div className="mt-6 flex flex-col gap-4">
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button
-                disabled={loading}
-                className="w-full py-3 bg-destructive hover:bg-destructive cursor-pointer"
+        {/* 이메일 회원 탈퇴 (비밀번호 필요) */}
+        {user.provider === 'EMAIL' && (
+          <>
+            <div className="mt-8">
+              <label
+                htmlFor="password"
+                className="block text-sm font-semibold text-muted-foreground mb-2"
               >
-                {loading ? '처리 중...' : '회원 탈퇴'}
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>회원 탈퇴 확인</AlertDialogTitle>
-                <AlertDialogDescription>
-                  정말 회원 탈퇴 하시겠습니까? 이 작업은 복구할 수 없습니다.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel className="cursor-pointer">취소</AlertDialogCancel>
-                <AlertDialogAction
-                  className="bg-destructive hover:bg-destructive cursor-pointer"
-                  onClick={handleSignOut}
+                회원 탈퇴를 위해 비밀번호 입력
+              </label>
+              <div className="relative mt-2">
+                <Lock className="absolute left-3 top-2.5 h-4 w-4 text-primary" />
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="비밀번호를 입력하세요"
+                  value={password}
+                  required
+                  className="border border-input pl-10 placeholder:text-primary bg-background"
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="mt-6 flex flex-col gap-4">
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    disabled={loading}
+                    className="w-full py-3 bg-destructive hover:bg-destructive cursor-pointer"
+                  >
+                    {loading ? '처리 중...' : '회원 탈퇴'}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>회원 탈퇴 확인</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      정말 회원 탈퇴 하시겠습니까? 이 작업은 복구할 수 없습니다.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel className="cursor-pointer">취소</AlertDialogCancel>
+                    <AlertDialogAction
+                      className="bg-destructive hover:bg-destructive cursor-pointer"
+                      onClick={handleSignOut}
+                    >
+                      탈퇴
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+          </>
+        )}
+
+        {/* 소셜 회원 탈퇴 */}
+        {user.provider === 'KAKAO' && (
+          <div className="mt-6 flex flex-col gap-4">
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  disabled={loading}
+                  className="w-full py-3 bg-destructive hover:bg-destructive cursor-pointer"
                 >
-                  탈퇴
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </div>
+                  {loading ? '처리 중...' : '소셜 회원 탈퇴'}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>회원 탈퇴 확인</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    정말 회원 탈퇴 하시겠습니까? 이 작업은 복구할 수 없습니다.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel className="cursor-pointer">취소</AlertDialogCancel>
+                  <AlertDialogAction
+                    className="bg-destructive hover:bg-destructive cursor-pointer"
+                    onClick={handleKakaoSignOut}
+                  >
+                    탈퇴
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+        )}
       </div>
     </RequireAuthenticated>
   );

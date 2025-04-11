@@ -30,12 +30,12 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     const data = response.data as CandleChartDto[];
     const mapped: CandleItem[] = data.map((dto) => ({
-      time: new Date(dto.candle_date_time_utc).getTime(),
-      open: dto.opening_price,
-      high: dto.high_price,
-      low: dto.low_price,
-      close: dto.trade_price,
-      volume: dto.candle_acc_trade_volume,
+      time: new Date(dto.candleDateTimeUtc).getTime(),
+      open: dto.openingPrice,
+      high: dto.highPrice,
+      low: dto.lowPrice,
+      close: dto.tradePrice,
+      volume: dto.candleAccTradeVolume,
     }));
 
     return NextResponse.json(mapped);

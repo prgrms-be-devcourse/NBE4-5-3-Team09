@@ -5,7 +5,7 @@ import { useWebSocket } from '@/context/WebSocketContext';
 import { Input } from '@/components/ui/input';
 
 interface ChatMessage {
-  id?: number; // 메시지 식별자 (백엔드에서 부여)
+  id?: number;
   sender: string;
   content: string;
   timestamp: string;
@@ -17,27 +17,24 @@ interface ChatPanelProps {
 
 const ChatPanel: React.FC<ChatPanelProps> = ({ marketCode }) => {
   const { chatMessages, updateSubscriptions, publishMessage } = useWebSocket();
-  const [input, setInput] = useState<string>('');
+  const [input, setInput] = useState('');
+  const [isComposing, setIsComposing] = useState(false);
   const [cachedMessages, setCachedMessages] = useState<ChatMessage[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // 채팅 구독 업데이트: marketCode 변경 시 구독 설정
   useEffect(() => {
     updateSubscriptions([{ type: 'chat', markets: [marketCode] }]);
   }, [marketCode]);
 
-  // 컴포넌트 마운트 시 캐시된 채팅 기록 불러오기
   useEffect(() => {
     const loadCachedMessages = async () => {
       try {
         const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/chat/rooms/${marketCode}/messages`,
+          `${process.env.NEXT_PUBLIC_API_URL}/api/chat/rooms/${marketCode}/messages`
         );
         if (res.ok) {
           const data = await res.json();
           setCachedMessages(data);
-        } else {
-          console.error('캐시된 채팅 기록 불러오기 실패');
         }
       } catch (error) {
         console.error('채팅 기록 불러오기 오류:', error);
@@ -46,44 +43,56 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ marketCode }) => {
     loadCachedMessages();
   }, [marketCode]);
 
-  // 새로운 메시지가 추가되면 자동 스크롤
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages[marketCode], cachedMessages]);
 
   const sendMessage = () => {
     if (!input.trim()) return;
-    // 세션 스토리지에서 액세스 토큰 읽기
     const token = sessionStorage.getItem('accessToken');
     const message: ChatMessage = {
-      sender: '', // 백엔드에서 JWT 디코딩 후 설정됨
       content: input,
-      timestamp: '', // 백엔드에서 타임스탬프 추가 예정
+      sender: '',
+      timestamp: '',
     };
-    // 토큰이 있을 경우 Authorization 헤더에 포함시킴
     publishMessage(
       `/app/chat/${marketCode}`,
       JSON.stringify(message),
-      token ? { Authorization: `Bearer ${token}` } : {},
+      token ? { Authorization: `Bearer ${token}` } : {}
     );
     setInput('');
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      sendMessage();
-    }
+    if (e.key === 'Enter') sendMessage();
   };
 
-  // 실시간 메시지와 캐시된 메시지 합치기 (중복 제거)
-  const realtimeMessages: ChatMessage[] = chatMessages[marketCode] || [];
-  const allMessages: ChatMessage[] = Array.from(
+  const handleReport = async (msg: ChatMessage) => {
+    if (!msg.id) return alert('메시지 식별자가 없습니다.');
+    const token = sessionStorage.getItem('accessToken');
+    if (!token) return alert('로그인이 필요합니다.');
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/chat/messages/${msg.id}/report`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    if (res.ok) alert('신고 완료');
+    else alert('신고 실패');
+  };
+
+  const realtimeMessages = chatMessages[marketCode] || [];
+  const allMessages = Array.from(
     new Map(
-      [...cachedMessages, ...realtimeMessages].map((msg) => [
-        `${msg.timestamp}-${msg.content}`,
-        msg,
-      ]),
-    ).values(),
+      [...cachedMessages, ...realtimeMessages].map((m) => [
+        `${m.timestamp}-${m.content}`,
+        m,
+      ])
+    ).values()
   );
 
   return (
@@ -93,7 +102,15 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ marketCode }) => {
           <div key={index} className="mb-2">
             <strong>{msg.sender}:</strong> {msg.content}
             <div className="text-xs text-muted-foreground">
-              {msg.timestamp ? new Date(parseInt(msg.timestamp)).toLocaleTimeString() : ''}
+              {msg.timestamp
+                ? new Date(parseInt(msg.timestamp)).toLocaleTimeString()
+                : ''}
+              <button
+                onClick={() => handleReport(msg)}
+                className="ml-2 text-red-500 underline"
+              >
+                신고
+              </button>
             </div>
           </div>
         ))}
@@ -104,8 +121,16 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ marketCode }) => {
           type="text"
           placeholder="메시지 입력"
           value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
+          onChange={(e) => {
+            setInput(e.target.value); // 항상 업데이트
+          }}
+          onCompositionStart={() => setIsComposing(true)}
+          onCompositionEnd={() => setIsComposing(false)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !isComposing) {
+              sendMessage();
+            }
+          }}
           className="flex-1 mr-2"
         />
         <button

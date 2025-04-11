@@ -19,7 +19,7 @@ export type TickerDto = {
   accTradePrice: number; // 누적 거래대금
   accTradePrice24h: number; // 24시간 누적 거래대금
   tradeDate: string; // 최근 거래 일자
-  tradeTime: string; // 최근 거래 시각
+  tradeTime: LocalTime; // 최근 거래 시각
   tradeTimestamp: number; // 체결 타임스탬프
   askBid: AskBid; // 매수/매도 구분
   accAskVolume: number; // 누적 매도량
@@ -31,6 +31,19 @@ export type TickerDto = {
   marketState: MarketState; // 거래 상태
   marketWarning: MarketWarning; // 유의 종목 여부
   timestamp: number; // 타임스탬프
+
+  // 계산된 지표
+  accAskBidRate: number; // 매수/매도 누적 비율
+  highBreakout: boolean; // 52주 최고가 갱신 여부
+  lowBreakout: boolean; // 52주 최저가 갱신 여부
+  oneMinuteRate: number; // 단기 변동률(1분)
+};
+
+type LocalTime = {
+  hour?: number;
+  minute?: number;
+  second?: number;
+  nano?: number;
 };
 
 export enum Change {
@@ -130,12 +143,12 @@ export type OrderbookUnit = {
 
 export type CandleChartDto = {
   market: string;
-  candle_date_time_utc: string; // ISO8601 형식 문자열
-  opening_price: number;
-  high_price: number;
-  low_price: number;
-  trade_price: number;
-  candle_acc_trade_volume: number;
+  candleDateTimeUtc: string; // ISO8601 형식 문자열
+  openingPrice: number;
+  highPrice: number;
+  lowPrice: number;
+  tradePrice: number;
+  candleAccTradeVolume: number;
   timestamp: number;
 };
 

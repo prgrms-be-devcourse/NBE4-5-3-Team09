@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
+import { Menu, X } from 'lucide-react';
 import { useWebSocket } from '@/context/WebSocketContext';
 import OrderbookList from '../components/orderbook/OrderbookList';
 import CandleChart from '../components/CandleChart';
@@ -10,7 +11,9 @@ import type { CandleItem, NewsItem } from '@/types';
 import TradeList from '@/app/coin/components/TradeList';
 import Ticker from '@/app/coin/components/Ticker';
 import { fetchApi } from '@/lib/api';
-import ChatPopup from '@/app/coin/components/ChatPopup'; // 채팅 모달 컴포넌트
+import ChatPopup from '@/app/coin/components/ChatPopup';
+import ShareModal from '@/app/coin/components/ShareModal';
+import NotificationPopup from '../components/NotificationPopup';
 
 export default function ClientPage() {
   const { market } = useParams() as { market: string };
@@ -19,65 +22,47 @@ export default function ClientPage() {
   const trade = trades?.[market] ?? null;
   const orderbook = orderbooks?.[market] ?? null;
 
-  // 보정된 캔들 데이터를 저장
   const [candles, setCandles] = useState<CandleItem[]>([]);
-  // 선택한 봉 단위: seconds, minutes, days, weeks, months, years
-  const [candleType, setCandleType] = useState<
-    'seconds' | 'minutes' | 'days' | 'weeks' | 'months' | 'years'
-  >('seconds');
-  // 분봉일 경우 단위 선택 (예: 1, 3, 5, 10, 15, 30, 60, 240)
+  const [candleType, setCandleType] = useState<'seconds' | 'minutes' | 'days' | 'weeks' | 'months' | 'years'>('seconds');
   const [minuteUnit, setMinuteUnit] = useState(1);
-
-  // 뉴스 데이터 state (NewsItem 배열)
   const [news, setNews] = useState<NewsItem[]>([]);
-
-  // 채팅 팝업 표시 상태
   const [isChatPopupOpen, setChatPopupOpen] = useState(false);
-
-  // 로그인 여부 상태: 세션 스토리지에 accessToken이 있으면 로그인된 것으로 판단
+  const [isShareOpen, setShareOpen] = useState(false);
+  const [isNotificationPopupOpen, setNotificationPopupOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-  // 봉 단위에 따른 폴링 간격(ms) 결정 함수
+  useEffect(() => {
+    setIsLoggedIn(!!sessionStorage.getItem('accessToken'));
+  }, []);
+
   const getPollingInterval = (type: string): number => {
     switch (type) {
-      case 'seconds':
-        return 1000;
-      case 'minutes':
-        return 30000;
-      case 'days':
-        return 3600000;
+      case 'seconds': return 1000;
+      case 'minutes': return 30000;
+      case 'days': return 3600000;
       case 'weeks':
       case 'months':
-      case 'years':
-        return 86400000;
-      default:
-        return 1000;
+      case 'years': return 86400000;
+      default: return 1000;
     }
   };
 
-  // 캔들 데이터 fetch
   useEffect(() => {
     const fetchCandles = async () => {
       try {
         const unitQuery = candleType === 'minutes' && minuteUnit ? `&unit=${minuteUnit}` : '';
-        const data = await fetchApi<CandleItem[]>(
-          `/api/candle?market=${market}&candleType=${candleType}${unitQuery}`,
-          { method: 'GET' },
-        );
+        const data = await fetchApi<CandleItem[]>(`/api/candle?market=${market}&candleType=${candleType}${unitQuery}`, { method: 'GET' });
         setCandles(data);
       } catch (err) {
         console.error('캔들 데이터 호출 오류:', err);
       }
     };
 
-    // 봉 단위에 따라 동적으로 폴링 간격 결정
-    const pollingInterval = getPollingInterval(candleType);
+    const interval = setInterval(fetchCandles, getPollingInterval(candleType));
     fetchCandles();
-    const interval = setInterval(fetchCandles, pollingInterval);
     return () => clearInterval(interval);
   }, [market, candleType, minuteUnit]);
 
-  // 뉴스 데이터 fetch (API 라우트 통해 변환된 데이터 사용)
   useEffect(() => {
     const fetchNews = async () => {
       try {
@@ -89,30 +74,44 @@ export default function ClientPage() {
       }
     };
 
-    if (market) {
-      fetchNews();
-    }
+    if (market) fetchNews();
   }, [market]);
-
-  // 로그인 여부 확인: 세션 스토리지의 accessToken을 체크
-  useEffect(() => {
-    const token = sessionStorage.getItem('accessToken');
-    setIsLoggedIn(!!token);
-  }, []);
 
   return (
     <div style={{ position: 'relative' }}>
-      {/* 우측 상단 채팅방 버튼 */}
-      <button
-        onClick={() => (isLoggedIn ? setChatPopupOpen(true) : alert('로그인이 필요합니다.'))}
-        disabled={!isLoggedIn}
-        className="absolute top-4 right-4 z-10 px-3 py-2 rounded-md transition-colors bg-primary text-primary-foreground dark:text-black dark:bg-primary-dark hover:bg-primary/90"
-      >
-        채팅방(회원 전용)
-      </button>
+      {/* 버튼 영역 (반응형) */}
+      <div className="absolute top-4 right-4 z-10 mt-4">
+        <div className="hidden md:flex gap-2">
+          <button
+            onClick={() => isLoggedIn ? setNotificationPopupOpen(true) : alert('로그인이 필요합니다.')}
+            className="px-3 py-2 rounded-md transition-colors bg-primary text-primary-foreground dark:text-black dark:bg-primary-dark hover:bg-primary/90"
+          >
+            알림 설정
+          </button>
+          <button
+            onClick={() => setShareOpen(!isShareOpen)}
+            className="px-3 py-2 rounded-md transition-colors bg-primary text-primary-foreground dark:text-black dark:bg-primary-dark hover:bg-primary/90"
+          >
+            공유하기
+          </button>
+          <button
+            onClick={() => isLoggedIn ? setChatPopupOpen(true) : alert('로그인이 필요합니다.')}
+            className="px-3 py-2 rounded-md transition-colors bg-primary text-primary-foreground dark:text-black dark:bg-primary-dark hover:bg-primary/90"
+          >
+            채팅방(회원 전용)
+          </button>
+        </div>
+
+        <MobileHeaderMenu
+          isLoggedIn={isLoggedIn}
+          onChatClick={() => setChatPopupOpen(true)}
+          onShareClick={() => setShareOpen(true)}
+          onNotifyClick={() => setNotificationPopupOpen(true)}
+        />
+      </div>
 
       <Ticker market={market} ticker={ticker} />
-      <div className="space-y-4">
+      <div className="space-y-4 mt-4">
         <CandleChart
           candles={candles}
           candleType={candleType}
@@ -129,8 +128,79 @@ export default function ClientPage() {
         </div>
       </div>
 
-      {/* 채팅 모달 팝업 */}
       {isChatPopupOpen && <ChatPopup marketCode={market} onClose={() => setChatPopupOpen(false)} />}
+      {isShareOpen && <ShareModal onClose={() => setShareOpen(false)} market={market} ticker={ticker} />}
+      {isNotificationPopupOpen && (
+        <NotificationPopup
+          market={market}
+          accessToken={sessionStorage.getItem('accessToken') ?? ''}
+          onClose={() => setNotificationPopupOpen(false)}
+        />
+      )}
+    </div>
+  );
+}
+
+function MobileHeaderMenu({
+                            isLoggedIn,
+                            onChatClick,
+                            onShareClick,
+                            onNotifyClick,
+                          }: {
+  isLoggedIn: boolean;
+  onChatClick: () => void;
+  onShareClick: () => void;
+  onNotifyClick: () => void;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  const handleClick = (action: () => void) => {
+    if (!isLoggedIn) {
+      alert('로그인이 필요합니다.');
+      return;
+    }
+    setIsOpen(false);
+    action();
+  };
+
+  return (
+    <div className="flex md:hidden flex-col items-end relative">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="p-2 bg-primary text-primary-foreground rounded-md dark:text-black dark:bg-primary-dark"
+      >
+        {isOpen ? <X size={20} /> : <Menu size={20} />}
+      </button>
+
+      {isOpen && (
+        <div
+          tabIndex={0}
+          onBlur={() => setIsOpen(false)}
+          className="absolute right-0 mt-12 w-40 bg-primary text-primary-foreground dark:text-black dark:bg-primary-dark rounded-md border shadow-md focus:outline-none"
+        >
+          <button
+            onClick={() => handleClick(onNotifyClick)}
+            className="w-full px-4 py-3 text-left text-sm hover:bg-primary/90 border-b"
+          >
+            알림 설정
+          </button>
+          <button
+            onClick={() => {
+              setIsOpen(false);
+              onShareClick();
+            }}
+            className="w-full px-4 py-3 text-left text-sm hover:bg-primary/90 border-b"
+          >
+            공유하기
+          </button>
+          <button
+            onClick={() => handleClick(onChatClick)}
+            className="w-full px-4 py-3 text-left text-sm hover:bg-primary/90"
+          >
+            채팅방(회원 전용)
+          </button>
+        </div>
+      )}
     </div>
   );
 }
