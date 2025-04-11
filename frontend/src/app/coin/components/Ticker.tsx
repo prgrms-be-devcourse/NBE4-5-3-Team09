@@ -56,19 +56,31 @@ export default function Ticker({ market, ticker }: TickerProps) {
               <span className="mr-2 font-extrabold">{currentTicker?.koreanName}</span>
               <span className="mr-2 text-xl font-medium">{currentTicker?.englishName}</span>
               {currentTicker && (
-                <span
-                  className={`text-xl ${
-                    currentTicker.change === 'RISE'
-                      ? 'text-red-500'
-                      : currentTicker.change === 'FALL'
-                        ? 'text-blue-500'
-                        : 'text-black-500'
-                  }`}
-                >
-                  {currentTicker.tradePrice.toLocaleString()}
-                  <span className="ml-0.5 text-sm">{market.split('-')[0]}</span>
-                  {` (${(currentTicker.oneMinuteRate * 100).toFixed(2) + '%'})`}
-                </span>
+                <>
+                  <span
+                    className={`text-xl ${
+                      currentTicker.change === 'RISE'
+                        ? 'text-red-500'
+                        : currentTicker.change === 'FALL'
+                          ? 'text-blue-500'
+                          : 'text-black-500'
+                    }`}
+                  >
+                    {currentTicker.tradePrice.toLocaleString()}
+                    <span className="ml-0.5 text-sm">{market.split('-')[0]}</span>
+                  </span>
+                  <span
+                    className={`text-xl ${
+                      currentTicker.oneMinuteRate > 0
+                        ? 'text-red-500'
+                        : currentTicker.oneMinuteRate < 0
+                          ? 'text-blue-500'
+                          : 'text-gray-500'
+                    }`}
+                  >
+                    {` (${(currentTicker.oneMinuteRate * 100).toFixed(2) + '%'})`}
+                  </span>
+                </>
               )}
             </div>
             <div className="mr-2 text-sm text-gray-400 font-medium">{market}</div>
